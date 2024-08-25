@@ -79,7 +79,7 @@ export default class AppService extends EventEmitter {
         res: Response,
         next: () => void,
     ): void {
-        const providedToken = req.query.access_token;
+        const providedToken = req.headers.authorization?.split(" ")[1];
         if (!providedToken) {
             res.status(401).send({
                 errcode: 'M_UNKNOWN_TOKEN',
@@ -94,7 +94,7 @@ export default class AppService extends EventEmitter {
             next();
         }
     }
-
+    
     private async onGetUsers(req: Request, res: Response): Promise<void> {
         const userid = req.params.userId;
 
