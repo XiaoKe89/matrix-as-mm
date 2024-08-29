@@ -94,7 +94,7 @@ export default class AppService extends EventEmitter {
             next();
         }
     }
-    
+
     private async onGetUsers(req: Request, res: Response): Promise<void> {
         const userid = req.params.userId;
 

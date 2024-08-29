@@ -372,9 +372,16 @@ export default class Main extends EventEmitter {
              } */
 
             if (myTeams.length > 0) {
-                // We only map channels in the default team now
-                const teamId = myTeams[0].id;
-                this.defaultTeam = { id: teamId, name: myTeams[0].name };
+                // We NOT only map channels in the default team now
+                // const teamId = myTeams[0].id;
+                const teamId = config().mattermost_team_id ?? myTeams[0].id;
+                // Find the team object by its ID
+                const teamObject = myTeams.find(team => team.id === teamId);
+                // Get the team name from the team object
+                const teamName = teamObject ? teamObject.name : 'Undefined Team Name';
+                this.defaultTeam = { id: teamId, name: teamName };
+
+                // this.defaultTeam = { id: teamId, name: myTeams[0].name };
                 this.myLogger.info(
                     `Checking mattermost [${myTeams[0].name}] team with id ${teamId} for channels`,
                 );
