@@ -850,23 +850,56 @@ export default class Main extends EventEmitter {
         await this.onMatrixEvent(event);
     }
 
+    // private async onMatrixEvent(event: MatrixEvent): Promise<void> {
+    //     this.myLogger.debug(
+    //         'Matrix event:\n',
+    //         util.inspect(event, { showHidden: false, depth: 5, colors: true }),
+    //     );
+    //     const channel = this.channelsByMatrix.get(event.room_id || '');
+    //     if (channel !== undefined) {
+    //         await channel.onMatrixEvent(event);
+    //     } else {
+    //         const handler = MatrixUnbridgedHandlers[event.type];
+    //         if (handler !== undefined) {
+    //             await handler.bind(this)(event);
+    //             return;
+    //         }
+    //         this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
+    //     }
+    // }
+
     private async onMatrixEvent(event: MatrixEvent): Promise<void> {
         this.myLogger.debug(
             'Matrix event:\n',
             util.inspect(event, { showHidden: false, depth: 5, colors: true }),
         );
-        const channel = this.channelsByMatrix.get(event.room_id || '');
-        if (channel !== undefined) {
-            await channel.onMatrixEvent(event);
-        } else {
-            const handler = MatrixUnbridgedHandlers[event.type];
-            if (handler !== undefined) {
-                await handler.bind(this)(event);
-                return;
+        if (event.type === "m.room.message" && event.content.body.startsWith("!")) {
+            const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Default to "botname" if not set in config
+            const [command, ...args] = event.content.body.slice(1).split(" ");
+            if (command === botCmdPrefix) {
+                if (args[0] === "hello-world") {
+                    await this.botClient.sendMessage(event.room_id, {
+                        msgtype: "m.notice",
+                        body: "Hello, world!",
+                    });
+                } else if (args[0] === "create-channel") {
+                    await this.createMattermostChannel(event.room_id, args[1]);
+                }
             }
-            this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
+        } else {
+            const channel = this.channelsByMatrix.get(event.room_id || '');
+            if (channel !== undefined) {
+                await channel.onMatrixEvent(event);
+            } else {
+                const handler = MatrixUnbridgedHandlers[event.type];
+                if (handler !== undefined) {
+                    await handler.bind(this)(event);
+                    return;
+                }
+                this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
+            }
         }
-    }
+    }    
 
     public async isMattermostUser(userid: string): Promise<boolean> {
         return (await this.matrixUserStore.getByMattermost(userid)) === null;
