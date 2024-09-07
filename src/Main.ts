@@ -874,14 +874,14 @@ export default class Main extends EventEmitter {
             util.inspect(event, { showHidden: false, depth: 5, colors: true }),
         );
         if (event.type === "m.room.message" && event.content.body.startsWith("!")) {
-            const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Default to "botname" if not set in config
+            const botCmdPrefix = config().bot_cmd_prefix || "botname"; 
             const [command, ...args] = event.content.body.slice(1).split(" ");
             if (command === botCmdPrefix) {
                 if (args[0] === "hello-world") {
-                    await this.botClient.sendMessage(event.room_id, {
+                    await this.botClient.sendEvent(event.room_id, "m.room.message", {
                         msgtype: "m.notice",
                         body: "Hello, world!",
-                    }, ""); // Pass empty string as the third argument or the appropriate argument as per the method signature    
+                    });
                 } else if (args[0] === "create-channel") {
                     await this.createMattermostChannel(event.room_id, args[1]);
                 }
@@ -899,7 +899,7 @@ export default class Main extends EventEmitter {
                 this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
             }
         }
-    }
+    }    
 
     private async createMattermostChannel(matrixRoomId: string, channelName: string): Promise<void> {
         const channelData = {
