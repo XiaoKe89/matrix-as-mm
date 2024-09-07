@@ -899,7 +899,21 @@ export default class Main extends EventEmitter {
                 this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
             }
         }
-    }    
+    }
+
+    private async createMattermostChannel(matrixRoomId: string, channelName: string): Promise<void> {
+        const channelData = {
+            team_id: this.defaultTeam.id,
+            name: channelName || `channel_${matrixRoomId}`,
+            display_name: `Channel for ${matrixRoomId}`,
+            type: "O", // "O" for public channels
+        };
+        const channel = await this.client.post(`/channels`, channelData);
+        this.myLogger.info(`Created Mattermost channel ${channel.name} for Matrix room ${matrixRoomId}`);
+    
+        // Map this channel to the Matrix room
+        this.doOneMapping(channel.id, matrixRoomId);
+    }
 
     public async isMattermostUser(userid: string): Promise<boolean> {
         return (await this.matrixUserStore.getByMattermost(userid)) === null;
