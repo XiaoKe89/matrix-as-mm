@@ -878,10 +878,10 @@ export default class Main extends EventEmitter {
             const [command, ...args] = event.content.body.slice(1).split(" ");
             if (command === botCmdPrefix) {
                 if (args[0] === "hello-world") {
-                    await this.botClient.sendMessage(event.room_id, {
-                        body: "Hello, world!",
+                    await this.botClient.sendMessage(event.room_id, "m.room.message", {
                         msgtype: "m.notice",
-                    });                   
+                        body: "Hello, world!",
+                    });                    
                 } else if (args[0] === "create-channel") {
                     await this.createMattermostChannel(event.room_id, args[1]);
                 }
