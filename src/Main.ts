@@ -881,7 +881,7 @@ export default class Main extends EventEmitter {
                     await this.botClient.sendMessage(event.room_id, {
                         msgtype: "m.notice",
                         body: "Hello, world!",
-                    });
+                    }, ""); // Pass empty string as the third argument or the appropriate argument as per the method signature    
                 } else if (args[0] === "create-channel") {
                     await this.createMattermostChannel(event.room_id, args[1]);
                 }
