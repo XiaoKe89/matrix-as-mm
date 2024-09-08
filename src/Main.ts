@@ -1040,6 +1040,7 @@ export default class Main extends EventEmitter {
             );
 
             // Handle different cases based on number of members
+            this.myLogger.info(`Members length count: ${members.length}`);
             if (members.length === 1) {
                 const roomName = members[0].content?.displayname || members[0].state_key;
                 this.myLogger.info(`Calculated room name based on single member: ${roomName}`);
