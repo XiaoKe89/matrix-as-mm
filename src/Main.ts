@@ -853,7 +853,6 @@ export default class Main extends EventEmitter {
     private sanitizeChannelName(matrixRoomId: string): string {
         // Extract only the alphanumeric part of the matrix room ID after the first '!'
         const sanitizedRoomId = matrixRoomId.split('!')[1]?.split(':')[0] || '';
-        
         // Return the sanitized string, lowercase
         return sanitizedRoomId.toLowerCase();
     }
