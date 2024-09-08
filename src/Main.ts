@@ -910,52 +910,103 @@ export default class Main extends EventEmitter {
         return userMemberEvent.content.displayname; // Unique displayname
     }
 
-    private async getRoomDisplayName(roomId: string): Promise<string> {
-        const roomState = await this.botClient.getRoomState(roomId, "m.room.name");
+    // private async getRoomDisplayName(roomId: string): Promise<string> {
+    //     const roomState = await this.botClient.getRoomState(roomId, "m.room.name");
         
-        const roomNameEvent = roomState.find(event => event.type === "m.room.name");
-        if (roomNameEvent && roomNameEvent.content.name) {
+    //     const roomNameEvent = roomState.find(event => event.type === "m.room.name");
+    //     if (roomNameEvent && roomNameEvent.content.name) {
+    //         return roomNameEvent.content.name;
+    //     }
+    
+    //     const roomAliasEvent = roomState.find(event => event.type === "m.room.canonical_alias");
+    //     if (roomAliasEvent && roomAliasEvent.content.alias) {
+    //         return roomAliasEvent.content.alias;
+    //     }
+    
+    //     const joinedMembers = roomState.filter(event => 
+    //         event.type === "m.room.member" &&
+    //         event.state_key !== this.botClient.getUserId() &&
+    //         (event.content.membership === "join" || event.content.membership === "invite")
+    //     );
+    
+    //     if (joinedMembers.length === 1) {
+    //         return await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+    //     }
+    
+    //     if (joinedMembers.length === 2) {
+    //         const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+    //         const user2 = await this.getDisambiguatedUserName(roomId, joinedMembers[1].state_key);
+    //         return `${user1} and ${user2}`;
+    //     }
+    
+    //     if (joinedMembers.length > 2) {
+    //         const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+    //         return `${user1} and ${joinedMembers.length - 1} others`;
+    //     }
+    
+    //     const leftMembers = roomState.filter(event => 
+    //         event.type === "m.room.member" &&
+    //         event.content.membership === "leave"
+    //     );
+    
+    //     if (leftMembers.length > 0) {
+    //         const user1 = await this.getDisambiguatedUserName(roomId, leftMembers[0].state_key);
+    //         return `Empty room (was ${user1} and ${leftMembers.length - 1} others)`;
+    //     }
+    
+    //     return "Empty room";
+    // }
+
+    private async getRoomDisplayName(roomId: string): Promise<string> {
+        try {
+            // Try to fetch the room name
+            const roomNameEvent = await this.botClient.getRoomState(roomId, "m.room.name");
             return roomNameEvent.content.name;
+        } catch (error) {
+            // Handle cases where the room name doesn't exist
+            if (error.response?.status === 404) {
+                this.myLogger.warn(`Room ${roomId} has no name set, falling back to other options`);
+                return await this.getFallbackRoomName(roomId);
+            }
+            throw error; // Re-throw other errors
         }
-    
-        const roomAliasEvent = roomState.find(event => event.type === "m.room.canonical_alias");
-        if (roomAliasEvent && roomAliasEvent.content.alias) {
-            return roomAliasEvent.content.alias;
-        }
-    
-        const joinedMembers = roomState.filter(event => 
-            event.type === "m.room.member" &&
-            event.state_key !== this.botClient.getUserId() &&
-            (event.content.membership === "join" || event.content.membership === "invite")
-        );
-    
-        if (joinedMembers.length === 1) {
-            return await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
-        }
-    
-        if (joinedMembers.length === 2) {
-            const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
-            const user2 = await this.getDisambiguatedUserName(roomId, joinedMembers[1].state_key);
-            return `${user1} and ${user2}`;
-        }
-    
-        if (joinedMembers.length > 2) {
-            const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
-            return `${user1} and ${joinedMembers.length - 1} others`;
-        }
-    
-        const leftMembers = roomState.filter(event => 
-            event.type === "m.room.member" &&
-            event.content.membership === "leave"
-        );
-    
-        if (leftMembers.length > 0) {
-            const user1 = await this.getDisambiguatedUserName(roomId, leftMembers[0].state_key);
-            return `Empty room (was ${user1} and ${leftMembers.length - 1} others)`;
-        }
-    
-        return "Empty room";
     }
+    
+    private async getFallbackRoomName(roomId: string): Promise<string> {
+        try {
+            // Fetch the canonical alias if it exists
+            const roomAliasEvent = await this.botClient.getRoomState(roomId, "m.room.canonical_alias");
+            if (roomAliasEvent && roomAliasEvent.content.alias) {
+                return roomAliasEvent.content.alias;
+            }
+    
+            // Fallback to user/member list
+            const joinedMembers = await this.botClient.getRoomMembers(roomId);
+            const memberNames = joinedMembers.filter(member =>
+                member.content.membership === "join" || member.content.membership === "invite"
+            ).map(member => member.content.displayname || member.state_key);
+    
+            // If only one member, return their name
+            if (memberNames.length === 1) {
+                return memberNames[0];
+            }
+    
+            // If two members, return both names
+            if (memberNames.length === 2) {
+                return `${memberNames[0]} and ${memberNames[1]}`;
+            }
+    
+            // More than two members, return a general format
+            if (memberNames.length > 2) {
+                return `${memberNames[0]} and ${memberNames.length - 1} others`;
+            }
+    
+            return "Empty room"; // If no members or other fallback fails
+        } catch (error) {
+            this.myLogger.error(`Failed to get fallback name for room ${roomId}: ${error.message}`);
+            return "Unknown room";
+        }
+    }    
 
     private async onMatrixEvent(event: MatrixEvent): Promise<void> {
         this.myLogger.debug(
