@@ -169,99 +169,7 @@ async function mapPrivateChannel(main: Main, m: MattermostMessage) {
     );
 }
 
-// async function mapGroupChannel(main: Main, m: MattermostMessage) {
-//     const channelId = m.broadcast.channel_id;
-//     const channel = await main.client.get(`/channels/${channelId}`);
-
-//     const invite: string[] = [main.botClient.getUserId()];
-//     const joiners: User[] = [];
-
-//     const senderName: string = m.data.sender_name.slice(1);
-//     const sender = await User.findOne({
-//         where: { mattermost_username: senderName },
-//     });
-//     if (!sender) return;
-
-//     const client: mxClient.MatrixClient =
-//         await main.mattermostUserStore.getOrCreateClient(
-//             sender.mattermost_userid,
-//         );
-
-//     const members = channel.display_name.split(', ');
-
-//     for (const member of members) {
-//         const mmUser = await User.findOne({
-//             where: { mattermost_username: member, is_matrix_user: true },
-//         });
-//         if (mmUser) {
-//             invite.push(mmUser.matrix_userid);
-//         } else {
-//         }
-//     }
-//     if (invite.length === 1) {
-//         return;
-//     }
-//     for (const member of members) {
-//         const mmUser = await User.findOne({
-//             where: { mattermost_username: member, is_matrix_user: false },
-//         });
-//         if (mmUser) {
-//             if (mmUser.mattermost_userid != sender.mattermost_userid) {
-//                 invite.push(mmUser.matrix_userid);
-//                 joiners.push(mmUser);
-//             }
-//         }
-//     }
-
-//     let room_id = groupChannelMap.get(channel.display_name);
-//     if (room_id === undefined) {
-//         const info = await client.createRoom({
-//             preset: 'private_chat',
-//             is_direct: true,
-//             //name: channel.channel_display_name,
-//             visibility: 'private',
-//             //room_alias_name: channel.name,
-//             invite: invite,
-//         });
-//         groupChannelMap.set(channel.display_name, info.room_id);
-//         main.doOneMapping(channel.id, info.room_id);
-//         await main.botClient.joinRoom(info.room_id);
-//         const mapping = new Mapping();
-//         mapping.matrix_room_id = info.room_id;
-//         mapping.mattermost_channel_id = channel.id;
-//         mapping.info = `Channel display name: ${channel.display_name}`;
-//         mapping.from_mattermost = false;
-//         await mapping.save();
-//         room_id = info.room_id;
-//     }
-//     if (room_id) {
-//         const post: MattermostPost = JSON.parse(m.data.post) as MattermostPost;
-//         const postMessage = await mattermostToMatrix(post.message);
-//         await sendMatrixMessage(
-//             client,
-//             room_id,
-//             post.id,
-
-//             postMessage,
-//             {},
-//         );
-//         for (const joiner of joiners) {
-//             const roomClient: mxClient.MatrixClient =
-//                 await main.mattermostUserStore.getOrCreateClient(
-//                     joiner.mattermost_userid,
-//                 );
-//             await roomClient.joinRoom(
-//                 room_id,
-//                 'Room for direct messaging joined',
-//             );
-//             myLogger.info(
-//                 `User ${joiner.matrix_userid} joining room ${room_id} for direct messaging`,
-//             );
-//         }
-//     }
-// }
-
-async function mapGroupChannel(main: Main, m: MattermostMessage, publicChannel: boolean = false) {
+async function mapGroupChannel(main: Main, m: MattermostMessage) {
     const channelId = m.broadcast.channel_id;
     const channel = await main.client.get(`/channels/${channelId}`);
 
@@ -276,7 +184,7 @@ async function mapGroupChannel(main: Main, m: MattermostMessage, publicChannel: 
 
     const client: mxClient.MatrixClient =
         await main.mattermostUserStore.getOrCreateClient(
-            sender.mattermost_userid
+            sender.mattermost_userid,
         );
 
     const members = channel.display_name.split(', ');
@@ -307,31 +215,24 @@ async function mapGroupChannel(main: Main, m: MattermostMessage, publicChannel: 
 
     let room_id = groupChannelMap.get(channel.display_name);
     if (room_id === undefined) {
-        const roomOptions: any = {
-            preset: publicChannel ? 'public_chat' : 'private_chat',
-            is_direct: !publicChannel,
-            visibility: publicChannel ? 'public' : 'private',
+        const info = await client.createRoom({
+            preset: 'private_chat',
+            is_direct: true,
+            //name: channel.channel_display_name,
+            visibility: 'private',
+            //room_alias_name: channel.name,
             invite: invite,
-        };
-
-        const info = await client.createRoom(roomOptions);
+        });
         groupChannelMap.set(channel.display_name, info.room_id);
         main.doOneMapping(channel.id, info.room_id);
         await main.botClient.joinRoom(info.room_id);
-        // Save mapping to the database
         const mapping = new Mapping();
         mapping.matrix_room_id = info.room_id;
         mapping.mattermost_channel_id = channel.id;
         mapping.info = `Channel display name: ${channel.display_name}`;
         mapping.from_mattermost = false;
-        await mapping.save();        
+        await mapping.save();
         room_id = info.room_id;
-
-        if (publicChannel) {
-            myLogger.info(
-                `Mapped Mattermost public channel ${channel.display_name} to Matrix room ${info.room_id}`
-            );
-        }
     }
     if (room_id) {
         const post: MattermostPost = JSON.parse(m.data.post) as MattermostPost;
@@ -340,17 +241,18 @@ async function mapGroupChannel(main: Main, m: MattermostMessage, publicChannel: 
             client,
             room_id,
             post.id,
+
             postMessage,
-            {}
+            {},
         );
         for (const joiner of joiners) {
             const roomClient: mxClient.MatrixClient =
                 await main.mattermostUserStore.getOrCreateClient(
-                    joiner.mattermost_userid
+                    joiner.mattermost_userid,
                 );
             await roomClient.joinRoom(
                 room_id,
-                'Room for messaging joined'
+                'Room for direct messaging joined',
             );
             myLogger.info(
                 `User ${joiner.matrix_userid} joining room ${room_id} for direct messaging`,
