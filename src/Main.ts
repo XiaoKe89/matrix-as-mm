@@ -911,7 +911,7 @@ export default class Main extends EventEmitter {
     }
 
     private async getRoomDisplayName(roomId: string): Promise<string> {
-        const roomState = await this.botClient.getRoomState(event.room_id, "m.room.name");
+        const roomState = await this.botClient.getRoomState(room_id, "m.room.name");
         
         const roomNameEvent = roomState.find(event => event.type === "m.room.name");
         if (roomNameEvent && roomNameEvent.content.name) {
