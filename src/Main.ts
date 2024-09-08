@@ -1010,39 +1010,30 @@ export default class Main extends EventEmitter {
 
     private async getRoomDisplayName(roomId: string): Promise<string> {
         try {
-            // Attempt to get the room name from m.room.name
-            this.myLogger.info(`getRoomDisplayName start`);
-            try {
-                const roomNameEvent = await this.botClient.getRoomState(roomId, "m.room.name");
-                if (roomNameEvent?.content?.name) {
-                    this.myLogger.info(`Fetched room name from m.room.name: ${roomNameEvent.content.name}`);
-                    return roomNameEvent.content.name;
-                }
-            } catch (e) {
-                this.myLogger.warn(`Error fetching room name from m.room.name: ${e.message}`);
-            }
-            this.myLogger.info(`getRoomDisplayName point 1`);
-            // Attempt to get the canonical alias from m.room.canonical_alias
-            try {
-                const roomAliasEvent = await this.botClient.getRoomState(roomId, "m.room.canonical_alias");
-                if (roomAliasEvent?.content?.alias) {
-                    this.myLogger.info(`Fetched room alias from m.room.canonical_alias: ${roomAliasEvent.content.alias}`);
-                    return roomAliasEvent.content.alias;
-                }
-            } catch (e) {
-                this.myLogger.warn(`Error fetching room alias from m.room.canonical_alias: ${e.message}`);
-            }
-            this.myLogger.info(`getRoomDisplayName point 2`);
+            // Fetch all room state events
+            const roomStateResponse = await this.botClient.getRoomStateAll(roomId);
     
-            // Fetch room state and calculate name based on room members
-            const roomStateResponse = await this.botClient.getRoomState(roomId, "m.room.member");
-            this.myLogger.info(`getRoomDisplayName point 3`);
+            // Attempt to get the room name from m.room.name
+            const roomNameEvent = roomStateResponse.find((event: any) => event.type === "m.room.name");
+            if (roomNameEvent?.content?.name) {
+                this.myLogger.info(`Fetched room name from m.room.name: ${roomNameEvent.content.name}`);
+                return roomNameEvent.content.name;
+            }
+    
+            // Attempt to get the canonical alias from m.room.canonical_alias
+            const roomAliasEvent = roomStateResponse.find((event: any) => event.type === "m.room.canonical_alias");
+            if (roomAliasEvent?.content?.alias) {
+                this.myLogger.info(`Fetched room alias from m.room.canonical_alias: ${roomAliasEvent.content.alias}`);
+                return roomAliasEvent.content.alias;
+            }
+    
+            // Filter out room members (only "join" or "invite")
             const members = roomStateResponse.filter((event: any) => 
+                event.type === "m.room.member" &&
                 ["join", "invite"].includes(event.content?.membership) &&
                 event.state_key !== this.botClient.getUserId()
             );
-            this.myLogger.info(`getRoomDisplayName point 4`);
-
+    
             // Handle different cases based on number of members
             this.myLogger.info(`Members length count: ${members.length}`);
             if (members.length === 1) {
