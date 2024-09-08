@@ -1033,11 +1033,12 @@ export default class Main extends EventEmitter {
             }
     
             // Fetch room state and calculate name based on room members
-            const roomStateResponse = await this.botClient.getRoomState(roomId);
-            const members = roomStateResponse.filter((event: any) => event.type === "m.room.member" && 
+            const roomStateResponse = await this.botClient.getRoomState(roomId, "m.room.member");
+            const members = roomStateResponse.filter((event: any) => 
                 ["join", "invite"].includes(event.content?.membership) &&
-                event.state_key !== this.botClient.getUserId());
-    
+                event.state_key !== this.botClient.getUserId()
+            );
+
             // Handle different cases based on number of members
             if (members.length === 1) {
                 const roomName = members[0].content?.displayname || members[0].state_key;
