@@ -328,7 +328,9 @@ async function mapGroupChannel(main: Main, m: MattermostMessage, publicChannel: 
         room_id = info.room_id;
 
         if (publicChannel) {
-            main.myLogger.info(`Mapped Mattermost public channel ${channel.display_name} to Matrix room ${info.room_id}`);
+            myLogger.info(
+                `Mapped Mattermost public channel ${channel.display_name} to Matrix room ${info.room_id}`
+            );
         }
     }
     if (room_id) {
