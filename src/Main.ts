@@ -42,6 +42,7 @@ import { EventEmitter } from 'events';
 import {
     MattermostMainHandlers,
     MattermostUnbridgedHandlers,
+    mapGroupChannel,
 } from './mattermost/MattermostHandler';
 import {getMatrixIntegrationTeam} from './mattermost/Utils'
 import * as fs from 'fs';
@@ -857,7 +858,7 @@ export default class Main extends EventEmitter {
         return sanitizedRoomId.toLowerCase();
     }
 
-    private async createMattermostChannel(matrixRoomId: string, channelName: string): Promise<void> {
+    private async createMattermostChannel(matrixRoomId: string): Promise<void> {
         const sanitizedChannelName = this.sanitizeChannelName(matrixRoomId);
         const roomName = await this.getRoomDisplayName(matrixRoomId);
         const channelData = {
