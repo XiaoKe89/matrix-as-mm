@@ -868,6 +868,95 @@ export default class Main extends EventEmitter {
     //     }
     // }
 
+    private async createMattermostChannel(matrixRoomId: string, channelName: string, roomName: string): Promise<void> {
+        const channelData = {
+            team_id: this.defaultTeam.id,
+            name: channelName || `channel_${matrixRoomId}`,
+            display_name: roomName || `Channel for ${matrixRoomId}`,
+            type: "O", // "O" for public channels
+        };
+    
+        this.myLogger.info(`Attempting to create Mattermost channel with name: ${channelData.name} and display_name: ${channelData.display_name}`);
+    
+        try {
+            const channel = await this.client.post(`/channels`, channelData);
+            this.myLogger.info(`Created Mattermost channel ${channel.name} for Matrix room ${matrixRoomId}`);
+            
+            // Map this channel to the Matrix room
+            this.doOneMapping(channel.id, matrixRoomId);
+        } catch (error) {
+            this.myLogger.error(`Failed to create Mattermost channel. Error: ${error.message}`);
+        }
+    }
+
+    private async getDisambiguatedUserName(roomId: string, userId: string): Promise<string> {
+        const roomMembers = await this.botClient.getRoomMembers(roomId);
+        const userMemberEvent = roomMembers.find(event => event.state_key === userId);
+        
+        if (!userMemberEvent || !userMemberEvent.content.displayname) {
+            return userId; // Use userId if no displayname
+        }
+    
+        const conflictingMembers = roomMembers.filter(event => 
+            event.content.displayname === userMemberEvent.content.displayname &&
+            event.state_key !== userId &&
+            (event.content.membership === "join" || event.content.membership === "invite")
+        );
+    
+        if (conflictingMembers.length > 0) {
+            return `${userMemberEvent.content.displayname} (${userId})`; // Disambiguate using userId
+        }
+    
+        return userMemberEvent.content.displayname; // Unique displayname
+    }
+
+    private async getRoomDisplayName(roomId: string): Promise<string> {
+        const roomState = await this.botClient.getRoomState(roomId);
+        
+        const roomNameEvent = roomState.find(event => event.type === "m.room.name");
+        if (roomNameEvent && roomNameEvent.content.name) {
+            return roomNameEvent.content.name;
+        }
+    
+        const roomAliasEvent = roomState.find(event => event.type === "m.room.canonical_alias");
+        if (roomAliasEvent && roomAliasEvent.content.alias) {
+            return roomAliasEvent.content.alias;
+        }
+    
+        const joinedMembers = roomState.filter(event => 
+            event.type === "m.room.member" &&
+            event.state_key !== this.botClient.getUserId() &&
+            (event.content.membership === "join" || event.content.membership === "invite")
+        );
+    
+        if (joinedMembers.length === 1) {
+            return await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+        }
+    
+        if (joinedMembers.length === 2) {
+            const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+            const user2 = await this.getDisambiguatedUserName(roomId, joinedMembers[1].state_key);
+            return `${user1} and ${user2}`;
+        }
+    
+        if (joinedMembers.length > 2) {
+            const user1 = await this.getDisambiguatedUserName(roomId, joinedMembers[0].state_key);
+            return `${user1} and ${joinedMembers.length - 1} others`;
+        }
+    
+        const leftMembers = roomState.filter(event => 
+            event.type === "m.room.member" &&
+            event.content.membership === "leave"
+        );
+    
+        if (leftMembers.length > 0) {
+            const user1 = await this.getDisambiguatedUserName(roomId, leftMembers[0].state_key);
+            return `Empty room (was ${user1} and ${leftMembers.length - 1} others)`;
+        }
+    
+        return "Empty room";
+    }
+
     private async onMatrixEvent(event: MatrixEvent): Promise<void> {
         this.myLogger.debug(
             'Matrix event:\n',
@@ -883,7 +972,8 @@ export default class Main extends EventEmitter {
                         body: "Hello, world!",
                     });                    
                 } else if (args[0] === "create-channel") {
-                    await this.createMattermostChannel(event.room_id, args[1]);
+                    const roomName = await this.getRoomDisplayName(event.room_id);
+                    await this.createMattermostChannel(event.room_id, args[1], roomName);
                 }
             }
         } else {
@@ -899,20 +989,6 @@ export default class Main extends EventEmitter {
                 this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
             }
         }
-    }    
-
-    private async createMattermostChannel(matrixRoomId: string, channelName: string): Promise<void> {
-        const channelData = {
-            team_id: this.defaultTeam.id,
-            name: channelName || `channel_${matrixRoomId}`,
-            display_name: `Channel for ${matrixRoomId}`,
-            type: "O", // "O" for public channels
-        };
-        const channel = await this.client.post(`/channels`, channelData);
-        this.myLogger.info(`Created Mattermost channel ${channel.name} for Matrix room ${matrixRoomId}`);
-    
-        // Map this channel to the Matrix room
-        this.doOneMapping(channel.id, matrixRoomId);
     }
 
     public async isMattermostUser(userid: string): Promise<boolean> {
