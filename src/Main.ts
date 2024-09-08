@@ -1054,7 +1054,6 @@ export default class Main extends EventEmitter {
                 const roomName = members[0].content?.displayname || members[0].state_key;
                 this.myLogger.info(`Calculated room name based on admin: ${roomName}`);
                 return roomName;
-            }
             } else if (members.length >= 3) {
                 members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
                 const roomName = `${members[0].content?.displayname || members[0].state_key} and ${members.length - 1} others`;
