@@ -155,7 +155,7 @@ async function mapPrivateChannel(main: Main, m: MattermostMessage) {
     mapping.info = `Channel display name: ${channel.display_name}`;
     mapping.from_mattermost = false;
     mapping.is_direct = false;
-    await mapping.();
+    await mapping.save();
 
     const post: MattermostPost = JSON.parse(m.data.post) as MattermostPost;
     const postMessage = await mattermostToMatrix(post.message);
