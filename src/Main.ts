@@ -857,8 +857,9 @@ export default class Main extends EventEmitter {
         return sanitizedRoomId.toLowerCase();
     }
 
-    private async createMattermostChannel(matrixRoomId: string, channelName: string, roomName: string): Promise<void> {
+    private async createMattermostChannel(matrixRoomId: string, channelName: string): Promise<void> {
         const sanitizedChannelName = this.sanitizeChannelName(matrixRoomId);
+        const roomName = await this.getRoomDisplayName(matrixRoomId);
         const channelData = {
             team_id: this.defaultTeam.id,
             name: sanitizedChannelName,
@@ -877,6 +878,17 @@ export default class Main extends EventEmitter {
         } catch (error) {
             this.myLogger.error(`Failed to create Mattermost channel. Error: ${error.message}`);
         }
+        // Call mapGroupChannel to handle the mapping and joining logic
+        await mapGroupChannel(this, {
+            broadcast: {
+                channel_id: channel.id,
+            },
+            data: {
+                post: JSON.stringify({
+                    message: `Channel created for ${roomName || matrixRoomId}`,
+                }),
+            },
+        }, true); // Passing `true` to handle the public channel case
     }
 
     private async getRoomDisplayName(roomId: string): Promise<string> {
@@ -955,8 +967,7 @@ export default class Main extends EventEmitter {
                         body: "Hello, world!",
                     });                    
                 } else if (args[0] === "create-channel") {
-                    const roomName = await this.getRoomDisplayName(event.room_id);
-                    await this.createMattermostChannel(event.room_id, args[1], roomName);
+                    await this.createMattermostChannel(event.room_id, args[1]);
                 }
             }
         } else {
