@@ -1011,6 +1011,7 @@ export default class Main extends EventEmitter {
     private async getRoomDisplayName(roomId: string): Promise<string> {
         try {
             // Attempt to get the room name from m.room.name
+            this.myLogger.info(`getRoomDisplayName start`);
             try {
                 const roomNameEvent = await this.botClient.getRoomState(roomId, "m.room.name");
                 if (roomNameEvent?.content?.name) {
@@ -1020,7 +1021,7 @@ export default class Main extends EventEmitter {
             } catch (e) {
                 this.myLogger.warn(`Error fetching room name from m.room.name: ${e.message}`);
             }
-    
+            this.myLogger.info(`getRoomDisplayName point 1`);
             // Attempt to get the canonical alias from m.room.canonical_alias
             try {
                 const roomAliasEvent = await this.botClient.getRoomState(roomId, "m.room.canonical_alias");
@@ -1031,6 +1032,7 @@ export default class Main extends EventEmitter {
             } catch (e) {
                 this.myLogger.warn(`Error fetching room alias from m.room.canonical_alias: ${e.message}`);
             }
+            this.myLogger.info(`getRoomDisplayName point 2`);
     
             // Fetch room state and calculate name based on room members
             const roomStateResponse = await this.botClient.getRoomState(roomId, "m.room.member");
