@@ -1040,11 +1040,21 @@ export default class Main extends EventEmitter {
                 const roomName = members[0].content?.displayname || members[0].state_key;
                 this.myLogger.info(`Calculated room name based on single member: ${roomName}`);
                 return roomName;
+            // } else if (members.length === 2) {
+            //     members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
+            //     const roomName = `${members[0].content?.displayname || members[0].state_key} and ${members[1].content?.displayname || members[1].state_key}`;
+            //     this.myLogger.info(`Calculated room name based on two members: ${roomName}`);
+            //     return roomName;
             } else if (members.length === 2) {
-                members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
-                const roomName = `${members[0].content?.displayname || members[0].state_key} and ${members[1].content?.displayname || members[1].state_key}`;
-                this.myLogger.info(`Calculated room name based on two members: ${roomName}`);
+                // Fetch the room power levels to identify the admin
+                const powerLevelsEvent = roomStateResponse.find((event: any) => event.type === "m.room.power_levels");
+                const powerLevels = powerLevelsEvent?.content?.users || {};
+                // Sort members by power level to get the admin
+                members.sort((a: any, b: any) => (powerLevels[b.state_key] || 0) - (powerLevels[a.state_key] || 0));
+                const roomName = members[0].content?.displayname || members[0].state_key;
+                this.myLogger.info(`Calculated room name based on admin: ${roomName}`);
                 return roomName;
+            }
             } else if (members.length >= 3) {
                 members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
                 const roomName = `${members[0].content?.displayname || members[0].state_key} and ${members.length - 1} others`;
