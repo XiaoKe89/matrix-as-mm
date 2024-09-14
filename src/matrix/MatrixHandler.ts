@@ -484,6 +484,7 @@ export const MatrixUnbridgedHandlers = {
         this: main,
         event: MatrixEvent,
     ): Promise<void> {
+        const content = event.content;
         const botDisplayName = config().matrix_bot?.display_name;
         const memberships: Membership[] = ['join', 'invite'];
         const roomMembers: RoomMember[] = [];
@@ -543,6 +544,27 @@ export const MatrixUnbridgedHandlers = {
 
             }
         }
+
+        let channel_privacy = !canonicalAlias
+        if (content.body && content.body.startsWith("!")) {
+            const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
+            const [command, ...args] = content.body.slice(1).split(" ");
+
+            // Handle specific bot commands
+            if (command === botCmdPrefix) {
+                if (args[0] === "hello") {
+                    await this.botClient.sendMessage(event.room_id, "m.room.message", {
+                        msgtype: "m.notice",
+                        body: "Hello, world!",
+                    });
+                } else if (args[0] === "mmchannel") {
+                    // Calculate room display name
+                    roomName = await this.calculateRoomDisplayName(event.room_id);
+                    channel_privacy = false
+                }
+            }
+        }
+
         const remoteUsers = mmUsers.length - localMembers - 1;
         if (remoteUsers < 1 || (!roomName && remoteUsers > 7)) {
             const message = `<strong>No mapping to Mattermost channel done</strong>. No remote users invited or to many users invited. Invited remote users=${remoteUsers}, local users=${localMembers}.`;
@@ -568,14 +590,13 @@ export const MatrixUnbridgedHandlers = {
             }
 
             const channel = await user.client.post('/channels',
-
                 {
                     team_id: team.id,
                     name: channelName,
                     display_name: roomName,
                     purpose: "Matrix integration",
                     header: user.matrix_displayname,
-                    type: canonicalAlias ? 'O' : 'P'
+                    type: !channel_privacy ? 'O' : 'P'
                 }
             )
             for (let mmUser of mmUsers) {
@@ -603,7 +624,7 @@ export const MatrixUnbridgedHandlers = {
 
             const mapping = new Mapping();
             mapping.is_direct = false;
-            mapping.is_private = !canonicalAlias;
+            mapping.is_private = channel_privacy;
             mapping.from_mattermost = false;
             mapping.matrix_room_id = event.room_id;
             mapping.mattermost_channel_id = channel.id;

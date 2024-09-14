@@ -851,48 +851,49 @@ export default class Main extends EventEmitter {
         await this.onMatrixEvent(event);
     }
 
-    private sanitizeChannelName(matrixRoomId: string): string {
-        // Extract only the alphanumeric part of the matrix room ID after the first '!'
-        const sanitizedRoomId = matrixRoomId.split('!')[1]?.split(':')[0] || '';
-        // Return the sanitized string, lowercase
-        return sanitizedRoomId.toLowerCase();
-    }
-
-    private async createMattermostChannel(matrixRoomId: string): Promise<void> {
-        const sanitizedChannelName = this.sanitizeChannelName(matrixRoomId);
-        const roomName = await this.getRoomDisplayName(matrixRoomId);
-        const channelData = {
-            team_id: this.defaultTeam.id,
-            name: sanitizedChannelName,
-            display_name: roomName || `Channel for ${matrixRoomId}`,
-            type: "O", // "O" for public channels
-        };
-    
-        this.myLogger.info(`Attempting to create Mattermost channel with name: ${channelData.name} and display_name: ${channelData.display_name}`);
-    
-        try {
-            const channel = await this.client.post(`/channels`, channelData);
-            this.myLogger.info(`Created Mattermost channel ${channel.name} for Matrix room ${matrixRoomId}`);
-            
-            // Map this channel to the Matrix room
-            this.doOneMapping(channel.id, matrixRoomId);
-        } catch (error) {
-            this.myLogger.error(`Failed to create Mattermost channel. Error: ${error.message}`);
+    private async onMatrixEvent(event: MatrixEvent): Promise<void> {
+        this.myLogger.debug(
+            'Matrix event:\n',
+            util.inspect(event, { showHidden: false, depth: 5, colors: true }),
+        );
+        const channel = this.channelsByMatrix.get(event.room_id || '');
+        if (channel !== undefined) {
+            await channel.onMatrixEvent(event);
+        } else {
+            const handler = MatrixUnbridgedHandlers[event.type];
+            if (handler !== undefined) {
+                await handler.bind(this)(event);
+                return;
+            }
+            this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
         }
-        // Call mapGroupChannel to handle the mapping and joining logic
-        await mapGroupChannel(this, {
-            broadcast: {
-                channel_id: channel.id,
-            },
-            data: {
-                post: JSON.stringify({
-                    message: `Channel created for ${roomName || matrixRoomId}`,
-                }),
-            },
-        }, true); // Passing `true` to handle the public channel case
     }
 
-    private async getRoomDisplayName(roomId: string): Promise<string> {
+    public async isMattermostUser(userid: string): Promise<boolean> {
+        return (await this.matrixUserStore.getByMattermost(userid)) === null;
+    }
+
+    public isRemoteUser(userid: string): boolean {
+        const re = this.registration.namespaces.users[0].regex;
+        return new RegExp(re).test(userid);
+    }
+
+    public skipMattermostUser(userid: string): boolean {
+        const botMattermostUser = this.client.userid;
+        const ignoredMattermostUsers = config().ignored_mattermost_users ?? [];
+        return (
+            userid === botMattermostUser ||
+            ignoredMattermostUsers.includes(userid)
+        );
+    }
+
+    public skipMatrixUser(userid: string): boolean {
+        const botMatrixUser = this.botClient.getUserId();
+        const ignoredMatrixUsers = config().ignored_matrix_users ?? [];
+        return userid === botMatrixUser || ignoredMatrixUsers.includes(userid);
+    }
+    
+    public async calculateRoomDisplayName(roomId: string): Promise<string> {
         try {
             // Fetch all room state events
             const roomStateResponse = await this.botClient.getRoomStateAll(roomId);
@@ -951,62 +952,5 @@ export default class Main extends EventEmitter {
             this.myLogger.error(`Error fetching room state for room ID ${roomId}: ${error.message}`);
             return "Unnamed Room";
         }
-    }
-
-    private async onMatrixEvent(event: MatrixEvent): Promise<void> {
-        this.myLogger.debug(
-            'Matrix event:\n',
-            util.inspect(event, { showHidden: false, depth: 5, colors: true }),
-        );
-        if (event.type === "m.room.message" && event.content.body.startsWith("!")) {
-            const botCmdPrefix = config().bot_cmd_prefix || "botname"; 
-            const [command, ...args] = event.content.body.slice(1).split(" ");
-            if (command === botCmdPrefix) {
-                if (args[0] === "hello-world") {
-                    await this.botClient.sendMessage(event.room_id, "m.room.message", {
-                        msgtype: "m.notice",
-                        body: "Hello, world!",
-                    });                    
-                } else if (args[0] === "create-channel") {
-                    await this.createMattermostChannel(event.room_id, args[1]);
-                }
-            }
-        } else {
-            const channel = this.channelsByMatrix.get(event.room_id || '');
-            if (channel !== undefined) {
-                await channel.onMatrixEvent(event);
-            } else {
-                const handler = MatrixUnbridgedHandlers[event.type];
-                if (handler !== undefined) {
-                    await handler.bind(this)(event);
-                    return;
-                }
-                this.myLogger.debug(`Message for unknown room: ${event.room_id}`);
-            }
-        }
-    }
-
-    public async isMattermostUser(userid: string): Promise<boolean> {
-        return (await this.matrixUserStore.getByMattermost(userid)) === null;
-    }
-
-    public isRemoteUser(userid: string): boolean {
-        const re = this.registration.namespaces.users[0].regex;
-        return new RegExp(re).test(userid);
-    }
-
-    public skipMattermostUser(userid: string): boolean {
-        const botMattermostUser = this.client.userid;
-        const ignoredMattermostUsers = config().ignored_mattermost_users ?? [];
-        return (
-            userid === botMattermostUser ||
-            ignoredMattermostUsers.includes(userid)
-        );
-    }
-
-    public skipMatrixUser(userid: string): boolean {
-        const botMatrixUser = this.botClient.getUserId();
-        const ignoredMatrixUsers = config().ignored_matrix_users ?? [];
-        return userid === botMatrixUser || ignoredMatrixUsers.includes(userid);
     }
 }

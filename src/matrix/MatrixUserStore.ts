@@ -25,108 +25,12 @@ export default class MatrixUserStore {
         return user;
     }
 
-    // public async getOrCreate(
-    //     matrix_userid: string,
-    //     sync: boolean = false,
-    // ): Promise<User> {
-    //     const mutexTimeout = inDebugger() ? 120000 : 3000;
-    //     const mutex: MutexInterface = withTimeout(new Mutex(), mutexTimeout);
-    //     const release = await mutex.acquire();
-    //     try {
-    //         let user = this.get(matrix_userid);
-    //         if (user !== undefined) {
-    //             return user;
-    //         }
-    //         user = await User.findOne({
-    //             //matrix_userid,
-    //             where: { matrix_userid: matrix_userid },
-    //         });
-
-    //         if (user) {
-    //             const info = await user.client.get(
-    //                 '/users/me',
-    //                 undefined,
-    //                 false,
-    //                 false,
-    //             );
-    //             if (
-    //                 info.status === 200 &&
-    //                 info.data.username == user.mattermost_username &&
-    //                 this.get(matrix_userid) == undefined
-    //             ) {
-    //                 this.myLogger.debug(
-    //                     `Mapping mattermost puppet user id: ${user.mattermost_userid} name: ${user.mattermost_username} to matrix user: ${matrix_userid}`,
-    //                 );
-    //                 this.byMatrixUserId.set(matrix_userid, user);
-    //                 this.byMattermostUserId.set(user.mattermost_userid, user);
-    //                 return user;
-    //             }
-    //         }
-    //         const client = this.main.client;
-    //         const localpart_ = localpart(matrix_userid);
-    //         const template = config().mattermost_username_template;
-
-    //         let displayname = '';
-
-    //         if (template.includes('[DISPLAY]')) {
-    //             try {
-    //                 const resp = await this.main.botClient.getProfileInfo(
-    //                     matrix_userid,
-    //                 );
-    //                 if (resp.displayname) {
-    //                     displayname = resp.displayname;
-    //                 }
-    //             } catch (e) {
-    //                 // Some users have no display name
-    //             }
-    //         }
-
-    //         const username = template
-    //             .replace('[DISPLAY]', displayname)
-    //             .replace('[LOCALPART]', localpart_);
-
-    //         let userInfo = undefined;
-    //         const info = await client.post('/users/usernames', [username]);
-    //         if (info.length > 0) {
-    //             userInfo = info[0];
-    //         }
-    //         const email = await this.getUserEmail(matrix_userid);
-
-    //         user = await User.createMatrixUser(
-    //             client,
-    //             matrix_userid,
-    //             username,
-    //             displayname,
-    //             userInfo,
-    //             email,
-    //         );
-    //         this.myLogger.debug(
-    //             `Creating mattermost puppet user id: ${user.mattermost_userid} name:  ${user.mattermost_username} for matrix user: ${matrix_userid}`,
-    //         );
-
-    //         this.byMatrixUserId.set(matrix_userid, user);
-    //         this.byMattermostUserId.set(user.mattermost_userid, user);
-    //         return user;
-    //     } catch (error) {
-    //         if (error == E_TIMEOUT) {
-    //         } else {
-    //             this.myLogger.error(
-    //                 'Get or creating mattermost user failed %s',
-    //                 error.message,
-    //             );
-    //         }
-    //     } finally {
-    //         release();
-    //     }
-    // }
-
     public async getOrCreate(
         matrix_userid: string,
         sync: boolean = false,
     ): Promise<User> {
         const mutexTimeout = inDebugger() ? 120000 : 3000;
         const mutex: MutexInterface = withTimeout(new Mutex(), mutexTimeout);
-        this.myLogger.debug(`Acquiring mutex for user: ${matrix_userid}`);
         const release = await mutex.acquire();
         try {
             this.myLogger.debug(`Attempting to fetch user from in-memory map: ${matrix_userid}`);
@@ -143,7 +47,6 @@ export default class MatrixUserStore {
     
             if (user) {
                 this.myLogger.debug(`User found in database: ${JSON.stringify(user)}`);
-    
                 this.myLogger.debug(`Checking if Mattermost username matches for user: ${matrix_userid}`);
                 const info = await user.client.get(
                     '/users/me',
