@@ -41,8 +41,7 @@ import log, { getLogger } from './Logging';
 import { EventEmitter } from 'events';
 import {
     MattermostMainHandlers,
-    MattermostUnbridgedHandlers,
-    mapGroupChannel,
+    MattermostUnbridgedHandlers
 } from './mattermost/MattermostHandler';
 import {getMatrixIntegrationTeam} from './mattermost/Utils'
 import * as fs from 'fs';
@@ -892,7 +891,7 @@ export default class Main extends EventEmitter {
         const ignoredMatrixUsers = config().ignored_matrix_users ?? [];
         return userid === botMatrixUser || ignoredMatrixUsers.includes(userid);
     }
-    
+
     public async calculateRoomDisplayName(roomId: string): Promise<string> {
         try {
             // Fetch all room state events
