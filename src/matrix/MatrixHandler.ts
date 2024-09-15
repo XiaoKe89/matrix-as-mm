@@ -598,7 +598,7 @@ export const MatrixUnbridgedHandlers = {
             if (updatedRoomName) {
                 roomName = updatedRoomName;
             }
-            if (channel_privacy) {
+            if (channelPrivacy) {
                 channelPrivacy = updatedChannelPrivacy
             }
         }
