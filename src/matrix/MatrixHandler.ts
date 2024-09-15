@@ -92,7 +92,9 @@ async function processBotCommand(
         if (command === botCmdPrefix) {
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message" && args[0] === "hello") {
+                myLogger.info(`Before notice Hello`);
                 await sendNotice('Info', client, event.room_id, `Hello, world!`)
+                myLogger.info(`After notice Hello`);
                 return;
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
@@ -102,9 +104,9 @@ async function processBotCommand(
                 return { roomName, channelPrivacy };
             }
             // Handle unknown commands
-            myLogger.info(`Before notice`);
+            myLogger.info(`Before notice Unknown`);
             await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
-            myLogger.info(`After notice`);
+            myLogger.info(`After notice Unknown`);
             return;
         }
     }
@@ -584,7 +586,6 @@ export const MatrixUnbridgedHandlers = {
         }
 
         let channelPrivacy = !canonicalAlias
-        myLogger.info(`Before bot exec: ${channelPrivacy}`);
         // Process bot commands and update roomName/channelPrivacy if applicable
         const commandResult = await processBotCommand.bind(this)(event, "unbridged");
 
