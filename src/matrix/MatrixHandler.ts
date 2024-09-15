@@ -82,7 +82,7 @@ async function processBotCommand(
     this: any, 
     event: MatrixEvent,
     handlerType: string
-): Promise<string | undefined> {
+): Promise<string | { roomName: any, channelPrivacy: boolean } | undefined> {
     const content = event.content;
     const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
     if (content.body && content.body.startsWith("!")) {
