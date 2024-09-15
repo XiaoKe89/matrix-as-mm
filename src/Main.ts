@@ -861,7 +861,7 @@ export default class Main extends EventEmitter {
         );
         if (channel !== undefined) {
             this.myLogger.debug(
-                `Not undefined channel. Processing ${event}`,
+                `Not undefined channel. Processing ${event.type}`,
             );    
             await channel.onMatrixEvent(event);
         } else {

@@ -122,7 +122,9 @@ const MatrixMessageHandlers = {
         event: MatrixEvent,
         metadata: Metadata,
     ) {
+        myLogger.info(`Before processBotCommand`);
         const commandResult = await processBotCommand.bind(this)(event, "message");
+        myLogger.info(`After processBotCommand`);
         if (commandResult) {
             // If processBotCommand handled a command, we stop further processing
             return;
