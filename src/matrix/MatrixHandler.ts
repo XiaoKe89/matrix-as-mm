@@ -84,6 +84,8 @@ async function processBotCommand(
     handlerType: string
 ): Promise<string | { roomName: any, channelPrivacy: boolean } | undefined> {
     const content = event.content;
+    const main = this.main;
+    const client = main.botClient;
     const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
     if (content.body && content.body.startsWith("!")) {
         const [command, ...args] = content.body.slice(1).split(" ");
@@ -91,7 +93,7 @@ async function processBotCommand(
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message" && args[0] === "hello") {
                 myLogger.info(`Before sendNotice`);
-                await sendNotice('Info', this.botClient, event.room_id, `Hello, world!`)
+                await sendNotice('Info', client, event.room_id, `Hello, world!`)
                 myLogger.info(`After sendNotice`);
                 // await this.botClient.sendMessage(event.room_id, "m.room.message", {
                 //     msgtype: "m.notice",
@@ -106,7 +108,7 @@ async function processBotCommand(
                 return { roomName, channelPrivacy };
             }
             // Handle unknown commands
-            await sendNotice('Info', this.botClient, event.room_id, `Unknown or unavailable command.`)
+            await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
             // await this.botClient.sendMessage(event.room_id, "m.room.message", {
             //     msgtype: "m.notice",
             //     body: "Unknown or unavailable command.",
