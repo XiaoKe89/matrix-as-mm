@@ -856,15 +856,18 @@ export default class Main extends EventEmitter {
             util.inspect(event, { showHidden: false, depth: 5, colors: true }),
         );
         const channel = this.channelsByMatrix.get(event.room_id || '');
+        this.myLogger.debug(
+            `Before channel undefined?`,
+        );
         if (channel !== undefined) {
             await channel.onMatrixEvent(event);
         } else {
-            this.myLogger.info(
+            this.myLogger.debug(
                 `Invoke MatrixUnbridgedHandlers. Event type: ${event.type}`,
             );
             const handler = MatrixUnbridgedHandlers[event.type];
             if (handler !== undefined) {
-                this.myLogger.info(
+                this.myLogger.debug(
                     `Handler: ${handler}`,
                 );    
                 await handler.bind(this)(event);
