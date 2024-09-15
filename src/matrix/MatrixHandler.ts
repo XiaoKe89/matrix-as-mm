@@ -98,7 +98,7 @@ async function processBotCommand(
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
-                roomName = await this.calculateRoomDisplayName(event.room_id);
+                const roomName = await this.calculateRoomDisplayName(event.room_id);
                 return { roomName, channel_privacy: false };
             }
             // Handle unknown commands
@@ -124,7 +124,7 @@ const MatrixMessageHandlers = {
             // If processBotCommand handled a command, we stop further processing
             return;
         }
-        
+
         if (metadata.edits) {
             try {
                 await user.client.put(`/posts/${metadata.edits}/patch`, {
