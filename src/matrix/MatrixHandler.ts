@@ -78,6 +78,40 @@ async function uploadFile(
     }).save();
 }
 
+async function processBotCommand(
+    this: any, 
+    event: MatrixEvent,
+    handlerType: string
+): Promise<string | undefined> {
+    const content = event.content;
+    const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
+    if (content.body && content.body.startsWith("!")) {
+        const [command, ...args] = content.body.slice(1).split(" ");
+        if (command === botCmdPrefix) {
+            // Process "hello" command in MatrixMessageHandlers
+            if (handlerType === "message" && args[0] === "hello") {
+                await this.botClient.sendMessage(event.room_id, "m.room.message", {
+                    msgtype: "m.notice",
+                    body: "Hello, world!",
+                });
+                return;
+            }
+            // Process "mmchannel" command in MatrixUnbridgedHandlers
+            if (handlerType === "unbridged" && args[0] === "mmchannel") {
+                roomName = await this.calculateRoomDisplayName(event.room_id);
+                return { roomName, channel_privacy: false };
+            }
+            // Handle unknown commands
+            await this.botClient.sendMessage(event.room_id, "m.room.message", {
+                msgtype: "m.notice",
+                body: "Unknown or unavailable command.",
+            });
+            return;
+        }
+    }
+    return;
+}
+
 const MatrixMessageHandlers = {
     'm.text': async function (
         this: Channel,
@@ -85,6 +119,12 @@ const MatrixMessageHandlers = {
         event: MatrixEvent,
         metadata: Metadata,
     ) {
+        const commandResult = await processBotCommand.bind(this)(event, "message");
+        if (commandResult) {
+            // If processBotCommand handled a command, we stop further processing
+            return;
+        }
+        
         if (metadata.edits) {
             try {
                 await user.client.put(`/posts/${metadata.edits}/patch`, {
@@ -484,7 +524,6 @@ export const MatrixUnbridgedHandlers = {
         this: main,
         event: MatrixEvent,
     ): Promise<void> {
-        const content = event.content;
         const botDisplayName = config().matrix_bot?.display_name;
         const memberships: Membership[] = ['join', 'invite'];
         const roomMembers: RoomMember[] = [];
@@ -547,25 +586,12 @@ export const MatrixUnbridgedHandlers = {
 
         let channel_privacy = !canonicalAlias
         myLogger.info(`Before bot exec: ${channel_privacy}`);
-        if (content.body && content.body.startsWith("!")) {
-            myLogger.info(`bot command detected`);
-            const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
-            const [command, ...args] = content.body.slice(1).split(" ");
-
-            // Handle specific bot commands
-            if (command === botCmdPrefix) {
-                myLogger.info(`bot command hello`);
-                if (args[0] === "hello") {
-                    await this.botClient.sendMessage(event.room_id, "m.room.message", {
-                        msgtype: "m.notice",
-                        body: "Hello, world!",
-                    });
-                } else if (args[0] === "mmchannel") {
-                    // Calculate room display name
-                    roomName = await this.calculateRoomDisplayName(event.room_id);
-                    channel_privacy = false
-                    myLogger.info(`bot command mmchannel; roomName: ${roomName}`);
-                }
+        // Process bot commands and update roomName/channel_privacy if applicable
+        const commandResult = await processBotCommand.bind(this)(event, "unbridged");
+        if (commandResult?.roomName) {
+            roomName = commandResult.roomName;
+            if (commandResult.channel_privacy !== undefined) {
+                channel_privacy = commandResult.channel_privacy;
             }
         }
 
