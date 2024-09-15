@@ -96,6 +96,7 @@ async function processBotCommand(
                     myLogger.info(`After notice Hello`);
                     return;                        
                 }
+                // Add other commands here
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
@@ -600,17 +601,16 @@ export const MatrixUnbridgedHandlers = {
             if (channelPrivacy) {
                 channelPrivacy = updatedChannelPrivacy
             }
+        } else {
+            const remoteUsers = mmUsers.length - localMembers - 1;
+            if (remoteUsers < 1 || (!roomName && remoteUsers > 7)) {
+                const message = `<strong>No mapping to Mattermost channel done</strong>. No remote users invited or to many users invited. Invited remote users=${remoteUsers}, local users=${localMembers}.`;
+    
+                await sendNotice('Warning', this.botClient, event.room_id, message)
+                await this.botClient.leave(event.room_id);
+                return;
+            }    
         }
-
-        const remoteUsers = mmUsers.length - localMembers - 1;
-        if (remoteUsers < 1 || (!roomName && remoteUsers > 7)) {
-            const message = `<strong>No mapping to Mattermost channel done</strong>. No remote users invited or to many users invited. Invited remote users=${remoteUsers}, local users=${localMembers}.`;
-
-            await sendNotice('Warning', this.botClient, event.room_id, message)
-            await this.botClient.leave(event.room_id);
-            return;
-        }
-
 
         if (roomName) {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
