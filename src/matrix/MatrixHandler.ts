@@ -99,7 +99,8 @@ async function processBotCommand(
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
                 const roomName = await this.calculateRoomDisplayName(event.room_id);
-                return { roomName, channel_privacy: false };
+                const channelPrivacy = false
+                return { roomName, channelPrivacy };
             }
             // Handle unknown commands
             await this.botClient.sendMessage(event.room_id, "m.room.message", {
@@ -584,14 +585,21 @@ export const MatrixUnbridgedHandlers = {
             }
         }
 
-        let channel_privacy = !canonicalAlias
-        myLogger.info(`Before bot exec: ${channel_privacy}`);
-        // Process bot commands and update roomName/channel_privacy if applicable
+        let channelPrivacy = !canonicalAlias
+        myLogger.info(`Before bot exec: ${channelPrivacy}`);
+        // Process bot commands and update roomName/channelPrivacy if applicable
         const commandResult = await processBotCommand.bind(this)(event, "unbridged");
-        if (commandResult?.roomName) {
-            roomName = commandResult.roomName;
-            if (commandResult.channel_privacy !== undefined) {
-                channel_privacy = commandResult.channel_privacy;
+
+        // Check if processBotCommand returned something, and destructure the result if it did.
+        if (commandResult && typeof commandResult === 'object') {
+            const { roomName: updatedRoomName, channelPrivacy: updatedChannelPrivacy } = commandResult;
+
+            // Update roomName and channelPrivacy
+            if (updatedRoomName) {
+                roomName = updatedRoomName;
+            }
+            if (channel_privacy) {
+                channelPrivacy = updatedChannelPrivacy
             }
         }
 
@@ -626,7 +634,7 @@ export const MatrixUnbridgedHandlers = {
                     display_name: roomName,
                     purpose: "Matrix integration",
                     header: user.matrix_displayname,
-                    type: !channel_privacy ? 'O' : 'P'
+                    type: !channelPrivacy ? 'O' : 'P'
                 }
             )
             for (let mmUser of mmUsers) {
@@ -654,7 +662,7 @@ export const MatrixUnbridgedHandlers = {
 
             const mapping = new Mapping();
             mapping.is_direct = false;
-            mapping.is_private = channel_privacy;
+            mapping.is_private = channelPrivacy;
             mapping.from_mattermost = false;
             mapping.matrix_room_id = event.room_id;
             mapping.mattermost_channel_id = channel.id;
