@@ -546,12 +546,15 @@ export const MatrixUnbridgedHandlers = {
         }
 
         let channel_privacy = !canonicalAlias
+        myLogger.info(`Before bot exec: ${channel_privacy}`);
         if (content.body && content.body.startsWith("!")) {
+            myLogger.info(`bot command detected`);
             const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
             const [command, ...args] = content.body.slice(1).split(" ");
 
             // Handle specific bot commands
             if (command === botCmdPrefix) {
+                myLogger.info(`bot command hello`);
                 if (args[0] === "hello") {
                     await this.botClient.sendMessage(event.room_id, "m.room.message", {
                         msgtype: "m.notice",
@@ -561,6 +564,7 @@ export const MatrixUnbridgedHandlers = {
                     // Calculate room display name
                     roomName = await this.calculateRoomDisplayName(event.room_id);
                     channel_privacy = false
+                    myLogger.info(`bot command mmchannel; roomName: ${roomName}`);
                 }
             }
         }
