@@ -859,8 +859,14 @@ export default class Main extends EventEmitter {
         if (channel !== undefined) {
             await channel.onMatrixEvent(event);
         } else {
+            this.myLogger.info(
+                `Invoke MatrixUnbridgedHandlers. Event type: ${event.type}`,
+            );
             const handler = MatrixUnbridgedHandlers[event.type];
             if (handler !== undefined) {
+                this.myLogger.info(
+                    `Handler: ${handler}`,
+                );    
                 await handler.bind(this)(event);
                 return;
             }
