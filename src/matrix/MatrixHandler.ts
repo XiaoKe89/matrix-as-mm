@@ -92,13 +92,7 @@ async function processBotCommand(
         if (command === botCmdPrefix) {
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message" && args[0] === "hello") {
-                myLogger.info(`Before sendNotice`);
                 await sendNotice('Info', client, event.room_id, `Hello, world!`)
-                myLogger.info(`After sendNotice`);
-                // await this.botClient.sendMessage(event.room_id, "m.room.message", {
-                //     msgtype: "m.notice",
-                //     body: "Hello, world!",
-                // });
                 return;
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
@@ -108,11 +102,9 @@ async function processBotCommand(
                 return { roomName, channelPrivacy };
             }
             // Handle unknown commands
+            myLogger.info(`Before notice`);
             await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
-            // await this.botClient.sendMessage(event.room_id, "m.room.message", {
-            //     msgtype: "m.notice",
-            //     body: "Unknown or unavailable command.",
-            // });
+            myLogger.info(`After notice`);
             return;
         }
     }
@@ -126,9 +118,7 @@ const MatrixMessageHandlers = {
         event: MatrixEvent,
         metadata: Metadata,
     ) {
-        myLogger.info(`Before processBotCommand`);
         const commandResult = await processBotCommand.bind(this)(event, "message");
-        myLogger.info(`After processBotCommand`);
         if (commandResult) {
             // If processBotCommand handled a command, we stop further processing
             return;
