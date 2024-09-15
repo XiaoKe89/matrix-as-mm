@@ -92,6 +92,7 @@ async function processBotCommand(
             if (handlerType === "message" && args[0] === "hello") {
                 myLogger.info(`Before sendNotice`);
                 await sendNotice('Info', this.botClient, event.room_id, `Hello, world!`)
+                myLogger.info(`After sendNotice`);
                 // await this.botClient.sendMessage(event.room_id, "m.room.message", {
                 //     msgtype: "m.notice",
                 //     body: "Hello, world!",
