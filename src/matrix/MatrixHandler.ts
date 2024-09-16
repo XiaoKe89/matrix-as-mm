@@ -495,22 +495,22 @@ export const MatrixUnbridgedHandlers = {
         this: main,
         event: MatrixEvent,
     ): Promise<void> {
-        const room_id = event.room_id;
+        const roomId = event.room_id;
         const displayName: string = event.content?.displayname || '';
         const botDisplayName = config().matrix_bot?.display_name;
         if (botDisplayName === displayName) {
-            const info = await this.botClient.joinRoom(room_id);
+            const info = await this.botClient.joinRoom(roomId);
             myLogger.debug(
                 'Found bot client %s invite for room %s. Info=%s',
                 botDisplayName,
-                room_id,
+                roomId,
                 info,
             );
         } else {
             myLogger.debug(
                 'Client %s invite request for room %s',
                 event.state_key,
-                room_id,
+                roomId,
             );
             const remoteUser: User = await User.findOne({
                 where: { matrix_userid: event.state_key },
@@ -518,7 +518,7 @@ export const MatrixUnbridgedHandlers = {
             if (remoteUser && !remoteUser.is_matrix_user) {
                 const client: MatrixClient =
                     await this.mattermostUserStore.client(remoteUser);
-                await client.joinRoom(room_id);
+                await client.joinRoom(roomId);
             }
         }
     },
@@ -529,6 +529,7 @@ export const MatrixUnbridgedHandlers = {
         const botDisplayName = config().matrix_bot?.display_name;
         const memberships: Membership[] = ['join', 'invite'];
         const roomMembers: RoomMember[] = [];
+        const roomId = event.room_id;
         let roomName = ''
         let canonicalAlias = ''
         const user = await this.matrixUserStore.get(event.sender);
@@ -536,7 +537,7 @@ export const MatrixUnbridgedHandlers = {
 
         for (const membership of memberships) {
             const response = await this.botClient.getRoomMembers(
-                event.room_id,
+                roomId,
                 membership,
             );
             for (const member of response.chunk) {
@@ -569,7 +570,7 @@ export const MatrixUnbridgedHandlers = {
             }
         }
 
-        const states = await this.botClient.getRoomStateAll(event.room_id)
+        const states = await this.botClient.getRoomStateAll(roomId)
 
         for (const state of states) {
             switch (state.type) {
@@ -589,7 +590,6 @@ export const MatrixUnbridgedHandlers = {
         let channelPrivacy = !canonicalAlias
         // Process bot commands and update roomName/channelPrivacy if applicable
         const commandResult = await processBotCommand.bind(this)(event, "unbridged");
-
         // Check if processBotCommand returned something, and destructure the result if it did.
         if (commandResult && typeof commandResult === 'object') {
             const { roomName: updatedRoomName, channelPrivacy: updatedChannelPrivacy } = commandResult;
@@ -602,27 +602,29 @@ export const MatrixUnbridgedHandlers = {
                 channelPrivacy = updatedChannelPrivacy
             }
         } else {
+            // do not leave for manually mapped channels
             const remoteUsers = mmUsers.length - localMembers - 1;
             if (remoteUsers < 1 || (!roomName && remoteUsers > 7)) {
                 const message = `<strong>No mapping to Mattermost channel done</strong>. No remote users invited or to many users invited. Invited remote users=${remoteUsers}, local users=${localMembers}.`;
     
-                await sendNotice('Warning', this.botClient, event.room_id, message)
-                await this.botClient.leave(event.room_id);
+                await sendNotice('Warning', this.botClient, roomId, message)
+                await this.botClient.leave(roomId);
                 return;
             }    
         }
 
         if (roomName) {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
-            const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
+            // const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
+            const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId
             const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid)
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
 
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
             if (check.status === 200) {
                 const message = `Channel with name ${channelName} exist in team ${team.name}. No mapping done`
-                await sendNotice('Error', this.botClient, event.room_id, message)
-                await this.botClient.leave(event.room_id);
+                await sendNotice('Error', this.botClient, roomId, message)
+                await this.botClient.leave(roomId);
                 return
             }
 
@@ -657,18 +659,18 @@ export const MatrixUnbridgedHandlers = {
 
                 }
             }
-            this.doOneMapping(channel.id, event.room_id);
+            this.doOneMapping(channel.id, roomId);
 
             const mapping = new Mapping();
             mapping.is_direct = false;
             mapping.is_private = channelPrivacy;
             mapping.from_mattermost = false;
-            mapping.matrix_room_id = event.room_id;
+            mapping.matrix_room_id = roomId;
             mapping.mattermost_channel_id = channel.id;
             mapping.info = `Channel display name: ${channel.display_name}`;
             await mapping.save();
             const message = `Room mapped to Mattermost channel <strong>${channel.display_name} </strong> in team <strong>${team.name}</strong>`
-            await sendNotice('Info', this.botClient, event.room_id, message)
+            await sendNotice('Info', this.botClient, roomId, message)
             await this.redoMatrixEvent(event);
         }
         else {
@@ -681,18 +683,18 @@ export const MatrixUnbridgedHandlers = {
             myLogger.info(
                 'New direct message channel %s. Mapped to matrix room [%s]. Number of members=%d, Mapping exist=%s',
                 channel.display_name,
-                event.room_id,
+                roomId,
                 mmUsers.length,
                 roomExists,
             );
 
-            this.doOneMapping(channel.id, event.room_id);
+            this.doOneMapping(channel.id, roomId);
 
             const mapping = new Mapping();
             mapping.is_direct = true;
             mapping.is_private = true;
             mapping.from_mattermost = false;
-            mapping.matrix_room_id = event.room_id;
+            mapping.matrix_room_id = roomId;
             mapping.mattermost_channel_id = channel.id;
             mapping.info = `Channel display name: ${channel.display_name}`;
             await mapping.save();
