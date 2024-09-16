@@ -88,11 +88,12 @@ async function processBotCommand(
     if (content.body && content.body.startsWith("!")) {
         const [command, ...args] = content.body.slice(1).split(" ");
         if (command === botCmdPrefix) {
+            let client = this.main.botClient
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message") {
                 if (args[0] === "hello") {
                     myLogger.info(`Before notice Hello`);
-                    await sendNotice('Info', this.main.botClient, event.room_id, `Hello, world!`)
+                    await sendNotice('Info', client, event.room_id, `Hello, world!`)
                     myLogger.info(`After notice Hello`);
                     return;                        
                 }
@@ -100,13 +101,14 @@ async function processBotCommand(
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
+                client = this.botClient
                 const roomName = await this.calculateRoomDisplayName(event.room_id);
                 const channelPrivacy = false
                 return { roomName, channelPrivacy };
             }
             // Handle unknown commands
             myLogger.info(`Before notice Unknown`);
-            await sendNotice('Info', this.botClient, event.room_id, `Unknown or unavailable command.`)
+            await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
             myLogger.info(`After notice Unknown`);
             return;
         }
@@ -616,7 +618,7 @@ export const MatrixUnbridgedHandlers = {
         if (roomName) {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
             // const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
-            const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId
+            const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId, original channelName may include restricted symbols
             const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid)
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
 
