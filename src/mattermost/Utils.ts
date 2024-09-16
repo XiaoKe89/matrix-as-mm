@@ -3,7 +3,6 @@ import { Client, ClientError } from './Client';
 import { User } from '../entities/User';
 import Channel from '../Channel';
 import { getLogger } from '../Logging';
-import { config } from './Config';
 
 const MAX_MEMBERS: number = 10000;
 const MATRIX_INTEGRATION_TEAM = 'MatrixRooms';
@@ -188,6 +187,7 @@ export async function leaveMattermostChannel(
 export async function getMatrixIntegrationTeam(
     client: Client,
     userId?: string,
+    teamId?: string,
 ): Promise<any> {
     const myTeams: any[] = await client.get(`/users/${client.userid}/teams`);
     // let team = myTeams.find(team => {
@@ -195,7 +195,6 @@ export async function getMatrixIntegrationTeam(
     // });
     
     // what the hell are we have to use hardcoded name 'MatrixRooms'?
-    const teamId = config().mattermost_team_id ?? myTeams[0].id;
     let team = myTeams.find(team => team.id === teamId);
 
     let isMember: boolean = false;

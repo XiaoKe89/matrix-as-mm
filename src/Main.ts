@@ -541,7 +541,8 @@ export default class Main extends EventEmitter {
                 this.client.userid,
             );
         }
-        this.matrixIntegrationTeam=await getMatrixIntegrationTeam(this.client)
+        const teamId = config().mattermost_team_id;
+        this.matrixIntegrationTeam=await getMatrixIntegrationTeam(this.client,,teamId)
         this.myLogger.info(`Matrix Integration team id=${this.matrixIntegrationTeam.id}, name=${this.matrixIntegrationTeam.name}`)
 
         this.ws.on('error', e => {

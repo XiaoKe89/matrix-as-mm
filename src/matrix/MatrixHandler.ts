@@ -619,7 +619,8 @@ export const MatrixUnbridgedHandlers = {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
             // const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
             const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId, original channelName may include restricted symbols
-            const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid)
+            const teamId = config().mattermost_team_id;
+            const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid, teamId)
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
 
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
