@@ -81,9 +81,11 @@ export class SynapseAdminClient {
         const synapseClient = new SynapseAdminClient(matrixClient);
         synapseClient.myLogger.info('Matrix Synapse admin client start auth=%s',matrixClient.getUserId(),);
         try {
+            synapseClient.myLogger.info('Matrix Synapse admin client before isAdmin check %s',matrixClient.getUserId(),);
             const isAdmin = await synapseClient.isAdmin(
                 matrixClient.getUserId(),
             );
+            synapseClient.myLogger.info('Matrix Synapse admin client after isAdmin check %s',matrixClient.getUserId(),);
             if (isAdmin.admin === true) {
                 synapseClient.isValid = true;
                 synapseClient.myLogger.info(
