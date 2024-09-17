@@ -79,6 +79,7 @@ async function uploadFile(
 }
 
 async function processBotCommand(
+    this: any,
     client: MatrixClient,
     event: MatrixEvent,
     handlerType: string
@@ -118,7 +119,8 @@ const MatrixMessageHandlers = {
         metadata: Metadata,
     ) {
         const client = this.main.botClient;
-        const commandResult = await processBotCommand(client, event, "message");    
+        const commandResult = await processBotCommand.bind(this)(client, event, "message");
+
         if (commandResult) {
             // If processBotCommand handled a command, we stop further processing
             return;
@@ -587,7 +589,7 @@ export const MatrixUnbridgedHandlers = {
 
         let channelPrivacy = !canonicalAlias
         // Process bot commands and update roomName/channelPrivacy if applicable
-        const commandResult = await processBotCommand(client, event, "unbridged");    
+        const commandResult = await processBotCommand.bind(this)(client, event, "unbridged");
         // Check if processBotCommand returned something, and destructure the result if it did.
         if (commandResult && typeof commandResult === 'object') {
             const { roomName: updatedRoomName, channelPrivacy: updatedChannelPrivacy } = commandResult;
