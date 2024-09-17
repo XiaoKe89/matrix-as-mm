@@ -79,7 +79,7 @@ async function uploadFile(
 }
 
 async function processBotCommand(
-    this: any, 
+    client: MatrixClient,
     event: MatrixEvent,
     handlerType: string
 ): Promise<string | { roomName: any, channelPrivacy: boolean } | undefined> {
@@ -88,32 +88,22 @@ async function processBotCommand(
     if (content.body && content.body.startsWith("!")) {
         const [command, ...args] = content.body.slice(1).split(" ");
         if (command === botCmdPrefix) {
-            myLogger.info(`Before let client`);
-            let client = this.main.botClient
-            myLogger.info(`After let client`);
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message") {
                 if (args[0] === "hello") {
-                    myLogger.info(`Before notice Hello`);
                     await sendNotice('Info', client, event.room_id, `Hello, world!`)
-                    myLogger.info(`After notice Hello`);
                     return;                        
                 }
-                // Add other commands here
+                // Add other regular commands here
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
-                myLogger.info(`Before client`);
-                client = this.botClient
-                myLogger.info(`After client`);
                 const roomName = await this.calculateRoomDisplayName(event.room_id);
                 const channelPrivacy = false
                 return { roomName, channelPrivacy };
             }
             // Handle unknown commands
-            myLogger.info(`Before notice Unknown`);
             await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
-            myLogger.info(`After notice Unknown`);
             return;
         }
     }
@@ -127,7 +117,8 @@ const MatrixMessageHandlers = {
         event: MatrixEvent,
         metadata: Metadata,
     ) {
-        const commandResult = await processBotCommand.bind(this)(event, "message");
+        const client = this.main.botClient;
+        const commandResult = await processBotCommand(client, event, "message");    
         if (commandResult) {
             // If processBotCommand handled a command, we stop further processing
             return;
@@ -536,13 +527,14 @@ export const MatrixUnbridgedHandlers = {
         const memberships: Membership[] = ['join', 'invite'];
         const roomMembers: RoomMember[] = [];
         const roomId = event.room_id;
+        const client = this.botClient;
         let roomName = ''
         let canonicalAlias = ''
         const user = await this.matrixUserStore.get(event.sender);
 
 
         for (const membership of memberships) {
-            const response = await this.botClient.getRoomMembers(
+            const response = await client.getRoomMembers(
                 roomId,
                 membership,
             );
@@ -576,7 +568,7 @@ export const MatrixUnbridgedHandlers = {
             }
         }
 
-        const states = await this.botClient.getRoomStateAll(roomId)
+        const states = await client.getRoomStateAll(roomId)
 
         for (const state of states) {
             switch (state.type) {
@@ -595,7 +587,7 @@ export const MatrixUnbridgedHandlers = {
 
         let channelPrivacy = !canonicalAlias
         // Process bot commands and update roomName/channelPrivacy if applicable
-        const commandResult = await processBotCommand.bind(this)(event, "unbridged");
+        const commandResult = await processBotCommand(client, event, "unbridged");    
         // Check if processBotCommand returned something, and destructure the result if it did.
         if (commandResult && typeof commandResult === 'object') {
             const { roomName: updatedRoomName, channelPrivacy: updatedChannelPrivacy } = commandResult;
@@ -613,8 +605,8 @@ export const MatrixUnbridgedHandlers = {
             if (remoteUsers < 1 || (!roomName && remoteUsers > 7)) {
                 const message = `<strong>No mapping to Mattermost channel done</strong>. No remote users invited or to many users invited. Invited remote users=${remoteUsers}, local users=${localMembers}.`;
     
-                await sendNotice('Warning', this.botClient, roomId, message)
-                await this.botClient.leave(roomId);
+                await sendNotice('Warning', client, roomId, message)
+                await client.leave(roomId);
                 return;
             }    
         }
@@ -630,8 +622,8 @@ export const MatrixUnbridgedHandlers = {
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
             if (check.status === 200) {
                 const message = `Channel with name ${channelName} exist in team ${team.name}. No mapping done`
-                await sendNotice('Error', this.botClient, roomId, message)
-                await this.botClient.leave(roomId);
+                await sendNotice('Error', client, roomId, message)
+                await client.leave(roomId);
                 return
             }
 
@@ -677,7 +669,7 @@ export const MatrixUnbridgedHandlers = {
             mapping.info = `Channel display name: ${channel.display_name}`;
             await mapping.save();
             const message = `Room mapped to Mattermost channel <strong>${channel.display_name} </strong> in team <strong>${team.name}</strong>`
-            await sendNotice('Info', this.botClient, roomId, message)
+            await sendNotice('Info', client, roomId, message)
             await this.redoMatrixEvent(event);
         }
         else {
@@ -709,8 +701,8 @@ export const MatrixUnbridgedHandlers = {
                 await this.redoMatrixEvent(event);
                 if (findMapping) {
                     const message = `Mapping to Mattermost channel <strong>${channel.display_name}</strong> no longer valid. Use new direct chat setup.`;
-                    await sendNotice('Warning', this.botClient, findMapping.matrix_room_id, message)
-                    await this.botClient.leave(findMapping.matrix_room_id);
+                    await sendNotice('Warning', client, findMapping.matrix_room_id, message)
+                    await client.leave(findMapping.matrix_room_id);
                 }
             } catch (err) {
                 myLogger.warn(
