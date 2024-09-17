@@ -88,7 +88,9 @@ async function processBotCommand(
     if (content.body && content.body.startsWith("!")) {
         const [command, ...args] = content.body.slice(1).split(" ");
         if (command === botCmdPrefix) {
+            myLogger.info(`Before let client`);
             let client = this.main.botClient
+            myLogger.info(`After let client`);
             // Process "hello" command in MatrixMessageHandlers
             if (handlerType === "message") {
                 if (args[0] === "hello") {
@@ -101,7 +103,9 @@ async function processBotCommand(
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
+                myLogger.info(`Before client`);
                 client = this.botClient
+                myLogger.info(`After client`);
                 const roomName = await this.calculateRoomDisplayName(event.room_id);
                 const channelPrivacy = false
                 return { roomName, channelPrivacy };
