@@ -35,7 +35,6 @@ export class SynapseAdminClient {
     }
 
     public async isAdmin(userId: string): Promise<any> {
-        synapseClient.myLogger.info('Inside isAdmin method %s',userId,);
         return this.doRequest({
             method: 'GET',
             url: `_synapse/admin/v1/users/${userId}/admin`,
