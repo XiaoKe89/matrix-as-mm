@@ -552,11 +552,13 @@ export const MattermostHandlers = {
                         await this.main.mattermostUserStore.getOrCreateClient(
                             m.data.user_id,
                         );
+                    myLogger.debug(`Before joinUserToMatrixRoom`)
                     await joinUserToMatrixRoom(
                         client,
                         this.matrixRoom,
                         this.main.adminClient,
                     );
+                    myLogger.debug(`After joinUserToMatrixRoom`)
                 }
             }
         } catch (error) {
