@@ -66,6 +66,7 @@ export default class Main extends EventEmitter {
 
     public botClient: mxClient.MatrixClient;
     public adminClient: mxClient.MatrixClient;
+    public bridgeClient: mxClient.MatrixClient;
     public synapseClient: SynapseAdminClient = undefined as any;
 
     public initialized: boolean;
@@ -145,6 +146,12 @@ export default class Main extends EventEmitter {
         this.adminClient = new MatrixClient({
             accessToken: config.matrix_admin.access_token,
             userId: config.matrix_admin.username,
+            apiTrace: this.traceApi,
+            baseUrl: config.homeserver.url,
+        });
+        this.bridgeClient = new MatrixClient({
+            accessToken: config.matrix_bridge.access_token,
+            userId: config.matrix_bridge.username,
             apiTrace: this.traceApi,
             baseUrl: config.homeserver.url,
         });

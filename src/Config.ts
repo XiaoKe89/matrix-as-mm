@@ -88,6 +88,11 @@ export interface Config {
         access_token: string;
         password?: string;
     };
+    matrix_bridge: {
+        username: string;
+        access_token: string;
+        password?: string;
+    };
     mattermost_bot_userid: string;
     mattermost_bot_access_token: string;
     homeserver: {

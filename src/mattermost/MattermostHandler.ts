@@ -556,7 +556,7 @@ export const MattermostHandlers = {
                     await joinUserToMatrixRoom(
                         client,
                         this.matrixRoom,
-                        this.main.adminClient,
+                        this.main.bridgeClient, // this.main.adminClient,
                     );
                     myLogger.debug(`After joinUserToMatrixRoom`)
                 }
