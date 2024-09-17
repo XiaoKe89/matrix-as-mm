@@ -79,6 +79,7 @@ export class SynapseAdminClient {
         matrixClient: MatrixClient,
     ): Promise<SynapseAdminClient> {
         const synapseClient = new SynapseAdminClient(matrixClient);
+        synapseClient.myLogger.info('Matrix Synapse admin client start auth=%s',matrixClient.getUserId(),);
         try {
             const isAdmin = await synapseClient.isAdmin(
                 matrixClient.getUserId(),
