@@ -89,6 +89,7 @@ export default class Channel {
     }
 
     public async onMattermostMessage(m: MattermostMessage): Promise<void> {
+        this.myLogger.debug(`Before MattermostHandlers: ${m.event}`);
         const handler = MattermostHandlers[m.event];
 
         if (handler === undefined) {
