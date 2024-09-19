@@ -7,6 +7,7 @@ import { config } from '../Config';
 export async function getMatrixUsers(
     main: Main,
     roomid: string,
+    logger: log4js.Logger,
 ): Promise<{
     real: Set<string>;
     remote: Set<string>;
@@ -27,8 +28,16 @@ export async function getMatrixUsers(
 
     for (const matrixUser of allMatrixUsers) {
         if (main.isRemoteUser(matrixUser)) {
+            logger.debug(
+                'This is remote user %s',
+                matrixUser,
+            );
             remoteMatrixUsers.add(matrixUser);
         } else {
+            logger.debug(
+                'This is real user %s',
+                matrixUser,
+            );
             realMatrixUsers.add(matrixUser);
         }
     }
