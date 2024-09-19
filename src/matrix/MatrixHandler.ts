@@ -700,8 +700,8 @@ export const MatrixUnbridgedHandlers = {
 
             // Forced membership mapping for room creator
             if (forcedMapping && roomCreatorId) {
-                await MatrixMembershipHandler.join.bind(this)({ userId: roomCreatorId, roomId });
-            }
+                await MatrixMembershipHandler.join.bind(channel)(roomCreatorId);
+            }            
         }
         else {
             const channel = await user.client.post('/channels/group', mmUsers);
