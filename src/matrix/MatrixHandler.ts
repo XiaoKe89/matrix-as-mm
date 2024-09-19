@@ -93,19 +93,24 @@ async function processBotCommand(
             if (handlerType === "message") {
                 if (args[0] === "hello") {
                     await sendNotice('Info', client, event.room_id, `Hello, world!`)
-                    return;                        
-                }
+                    return;
                 // Add other regular commands here
+                } else {
+                    // Handle unknown commands
+                    await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
+                    return;
+                }
             }
             // Process "mmchannel" command in MatrixUnbridgedHandlers
             if (handlerType === "unbridged" && args[0] === "mmchannel") {
                 const roomName = await this.calculateRoomDisplayName(event.room_id);
                 const channelPrivacy = false
                 return { roomName, channelPrivacy };
+            } else {
+                // Handle unknown commands
+                await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
+                return;
             }
-            // Handle unknown commands
-            await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
-            return;
         }
     }
     return;
@@ -261,6 +266,7 @@ const MatrixMembershipHandler = {
         const channel = await this.main.client.get(
             `/channels/${this.mattermostChannel}`,
         );
+        myLogger.info(`channel.type is ${channel.type}`);
         if (channel.type != 'G') {
             const user = await this.main.matrixUserStore.getOrCreate(
                 userid,
@@ -530,8 +536,10 @@ export const MatrixUnbridgedHandlers = {
         const roomMembers: RoomMember[] = [];
         const roomId = event.room_id;
         const client = this.botClient;
-        let roomName = ''
-        let canonicalAlias = ''
+        let roomName = '';
+        let canonicalAlias = '';
+        let roomCreatorId = '';
+        let forcedMapping = false;
         const user = await this.matrixUserStore.get(event.sender);
 
 
@@ -575,6 +583,7 @@ export const MatrixUnbridgedHandlers = {
         for (const state of states) {
             switch (state.type) {
                 case 'm.room.create':
+                    roomCreatorId = state.content.creator;
                     break
                 case 'm.room.name':
                     roomName = state.content.name
@@ -586,6 +595,7 @@ export const MatrixUnbridgedHandlers = {
 
             }
         }
+        myLogger.info(`roomCreatorId defined: ${roomCreatorId}`);
 
         let channelPrivacy = !canonicalAlias
         // Process bot commands and update roomName/channelPrivacy if applicable
@@ -597,6 +607,7 @@ export const MatrixUnbridgedHandlers = {
             // Update roomName and channelPrivacy
             if (updatedRoomName) {
                 roomName = updatedRoomName;
+                forcedMapping = true;
             }
             if (channelPrivacy) {
                 channelPrivacy = updatedChannelPrivacy
@@ -621,33 +632,46 @@ export const MatrixUnbridgedHandlers = {
             const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid, teamId)
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
 
+            // Check if the channel already exists in Mattermost
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
+            let existingChannel = false;
+            let channel: any = null;
+
             if (check.status === 200) {
-                const message = `Channel with name ${channelName} exist in team ${team.name}. No mapping done`
-                await sendNotice('Error', client, roomId, message)
-                await client.leave(roomId);
-                return
+                if (forcedMapping) {
+                    existingChannel = true
+                    channel = check.data;
+                    myLogger.info(`Using existing channel: ${channelName} (ID: ${channel.id})`);
+                } else {
+                    const message = `Channel with name ${channelName} exist in team ${team.name}. No mapping done`
+                    await sendNotice('Error', client, roomId, message)
+                    await client.leave(roomId);
+                    return                        
+                }
             }
 
-            const channel = await user.client.post('/channels',
-                {
-                    team_id: team.id,
-                    name: channelName,
-                    display_name: roomName,
-                    purpose: "Matrix integration",
-                    header: user.matrix_displayname,
-                    type: !channelPrivacy ? 'O' : 'P'
-                }
-            )
+            // Create new channel if it doesn't already exist
+            if (!existingChannel) {
+                channel = await user.client.post('/channels',
+                    {
+                        team_id: team.id,
+                        name: channelName,
+                        display_name: roomName,
+                        purpose: "Matrix integration",
+                        header: user.matrix_displayname,
+                        type: !channelPrivacy ? 'O' : 'P'
+                    }
+                )                    
+            }
+            // Add Matrix users to the Mattermost channel
             for (let mmUser of mmUsers) {
                 if (mmUser !== user.mattermost_userid) {
-                    const inTeam = teamMembers.find(member => { return member.user_id === mmUser })
+                    const inTeam = teamMembers.find(member => { return member.user_id === mmUser });
                     if (!inTeam) {
                         await this.client.post(`/teams/${team.id}/members`,
                             {
                                 user_id: mmUser,
                                 team_id: team.id
-
                             }
                         )
                     }
@@ -657,11 +681,11 @@ export const MatrixUnbridgedHandlers = {
                             user_id: mmUser,
                         }
                     )
-
                 }
             }
+            // In-memory mapping between the Matrix room and Mattermost channel
             this.doOneMapping(channel.id, roomId);
-
+            // DB mapping between the Matrix room and Mattermost channel
             const mapping = new Mapping();
             mapping.is_direct = false;
             mapping.is_private = channelPrivacy;
@@ -673,9 +697,13 @@ export const MatrixUnbridgedHandlers = {
             const message = `Room mapped to Mattermost channel <strong>${channel.display_name} </strong> in team <strong>${team.name}</strong>`
             await sendNotice('Info', client, roomId, message)
             await this.redoMatrixEvent(event);
+
+            // Forced membership mapping for room creator
+            if (forcedMapping && roomCreatorId) {
+                await MatrixMembershipHandler.join.bind(this)({ userId: roomCreatorId, roomId });
+            }
         }
         else {
-
             const channel = await user.client.post('/channels/group', mmUsers);
             const findMapping = await Mapping.findOne({
                 where: { mattermost_channel_id: channel.id },

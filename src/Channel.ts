@@ -41,12 +41,14 @@ export default class Channel {
     }
 
     public async syncChannel(): Promise<void> {
+        this.myLogger.debug(`syncChannel start`);
         const [matrixUsers, mattermostUsers] = await Promise.all([
             getMatrixUsers(this.main, this.matrixRoom),
             getMattermostUsers(this.main.client, this.mattermostChannel),
         ]);
 
         for (const matrix_userid of matrixUsers.real.values()) {
+            this.myLogger.debug(`syncChannel start matrix users`);
             if (!this.main.skipMatrixUser(matrix_userid)) {
                 const user = await this.main.matrixUserStore.getOrCreate(
                     matrix_userid,
@@ -58,6 +60,7 @@ export default class Channel {
         }
 
         for (const userid of mattermostUsers.values()) {
+            this.myLogger.debug(`syncChannel start mattermost users`);
             if (!this.main.skipMattermostUser(userid)) {
                 if (!(await this.main.isMattermostUser(userid))) {
                     await leaveMattermostChannel(
