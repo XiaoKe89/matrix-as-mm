@@ -702,7 +702,7 @@ export const MatrixUnbridgedHandlers = {
             if (forcedMapping && roomCreatorId) {
                 const boundChannel = {
                     ...channel,
-                    main: this.main,
+                    main: this,
                 };
                 await MatrixMembershipHandler.join.bind(boundChannel)(roomCreatorId);
             }
