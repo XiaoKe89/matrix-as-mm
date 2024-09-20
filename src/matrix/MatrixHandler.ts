@@ -574,11 +574,6 @@ export const MatrixUnbridgedHandlers = {
                 let mmUser = await User.findOne({
                     where: { matrix_userid: member.userId },
                 });
-                const localPart = member.userId.split(':')[0].slice(1); // Extracts the local part (e.g., "somebot")
-                if (localPart.endsWith("bot")) {
-                    myLogger.info(`Skipping bot user: ${member.userId}`);
-                    return; // Skip this iteration for bot users
-                }
                 // Create Mattermost user on the fly if user doesn't exist
                 if (!mmUser) {
                     myLogger.info(`User not found in Mattermost, creating puppet for ${member.userId}`);
