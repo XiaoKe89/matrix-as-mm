@@ -577,7 +577,7 @@ export const MatrixUnbridgedHandlers = {
                 // Create Mattermost user on the fly if user doesn't exist
                 if (!mmUser) {
                     myLogger.info(`User not found in Mattermost, creating puppet for ${member.userId}`);
-                    const newUser = await this.main.mattermostUserStore.getOrCreate(member.userId, true);
+                    const newUser = await this.mattermostUserStore.getOrCreate(member.userId, true);
                     mmUser = newUser;
                 }
                 myLogger.info(`and member's mmUser: ${JSON.stringify(mmUser)}`);
