@@ -550,6 +550,7 @@ export const MatrixUnbridgedHandlers = {
                 roomId,
                 membership,
             );
+            myLogger.info(`response getRoomMembers: ${JSON.stringify(response)}`);
             for (const member of response.chunk) {
                 myLogger.info(`member of response.chunk: ${JSON.stringify(member)}`);
                 roomMembers.push({
@@ -570,9 +571,11 @@ export const MatrixUnbridgedHandlers = {
                 mmUsers.push(config().mattermost_bot_userid);
 
             } else if (!this.skipMatrixUser(member.userId)) {
+                myLogger.info(`again member of roomMembers: ${JSON.stringify(member)}`);
                 const mmUser = await User.findOne({
                     where: { matrix_userid: member.userId },
                 });
+                myLogger.info(`and member's mmUser: ${JSON.stringify(mmUser)}`);
                 if (mmUser) {
                     mmUsers.push(mmUser.mattermost_userid);
                     if (mmUser.is_matrix_user) localMembers++;
