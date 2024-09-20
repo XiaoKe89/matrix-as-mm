@@ -701,7 +701,7 @@ export const MatrixUnbridgedHandlers = {
             await this.redoMatrixEvent(event);
 
             myLogger.debug('Contents of this:', this);
-            myLogger.debug('Contents of this.main:', this.main);
+            // myLogger.debug('Contents of this.main:', this.main);
             // Forced membership mapping for room creator
             // if (forcedMapping && roomCreatorId) {
             //     const boundChannel = {
