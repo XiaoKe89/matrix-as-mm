@@ -266,7 +266,8 @@ const MatrixMembershipHandler = {
         const channel = await this.main.client.get(
             `/channels/${this.mattermostChannel}`,
         );
-        myLogger.info(`channel.type is ${channel.type}`);
+        myLogger.debug(`channel.type is ${channel.type}`);
+        myLogger.debug(`Contents of this at MatrixMembershipHandler ${this}`);
         if (channel.type != 'G') {
             const user = await this.main.matrixUserStore.getOrCreate(
                 userid,
@@ -544,11 +545,13 @@ export const MatrixUnbridgedHandlers = {
 
 
         for (const membership of memberships) {
+            myLogger.info(`membership of memberships: ${JSON.stringify(membership)}`);
             const response = await client.getRoomMembers(
                 roomId,
                 membership,
             );
             for (const member of response.chunk) {
+                myLogger.info(`member of response.chunk: ${JSON.stringify(member)}`);
                 roomMembers.push({
                     type: member.type,
                     displayName: member.content.displayname,
@@ -558,11 +561,11 @@ export const MatrixUnbridgedHandlers = {
             }
         }
 
-
         const mmUsers: string[] = [];
         let localMembers: number = 0;
 
         for (const member of roomMembers) {
+            myLogger.info(`member of roomMembers: ${JSON.stringify(member)}`);
             if (member.displayName == botDisplayName) {
                 mmUsers.push(config().mattermost_bot_userid);
 
@@ -572,7 +575,6 @@ export const MatrixUnbridgedHandlers = {
                 });
                 if (mmUser) {
                     mmUsers.push(mmUser.mattermost_userid);
-
                     if (mmUser.is_matrix_user) localMembers++;
                 }
             }
@@ -665,6 +667,7 @@ export const MatrixUnbridgedHandlers = {
             }
             // Add Matrix users to the Mattermost channel
             for (let mmUser of mmUsers) {
+                myLogger.debug('mmUser of mmUsers:', mmUser);
                 if (mmUser !== user.mattermost_userid) {
                     const inTeam = teamMembers.find(member => { return member.user_id === mmUser });
                     if (!inTeam) {
@@ -675,7 +678,6 @@ export const MatrixUnbridgedHandlers = {
                             }
                         )
                     }
-
                     await user.client.post(`/channels/${channel.id}/members`,
                         {
                             user_id: mmUser,
@@ -698,15 +700,16 @@ export const MatrixUnbridgedHandlers = {
             await sendNotice('Info', client, roomId, message)
             await this.redoMatrixEvent(event);
 
+            myLogger.debug('Contents of this:', this);
+            myLogger.debug('Contents of this.main:', this.main);
             // Forced membership mapping for room creator
-            if (forcedMapping && roomCreatorId) {
-                const boundChannel = {
-                    ...channel,
-                    main: this,
-                };
-                await MatrixMembershipHandler.join.bind(boundChannel)(roomCreatorId);
-            }
-            
+            // if (forcedMapping && roomCreatorId) {
+            //     const boundChannel = {
+            //         ...channel,
+            //         main: this,
+            //     };
+            //     await MatrixMembershipHandler.join.bind(boundChannel)(roomCreatorId);
+            // }            
         }
         else {
             const channel = await user.client.post('/channels/group', mmUsers);
