@@ -571,14 +571,13 @@ export const MatrixUnbridgedHandlers = {
                 mmUsers.push(config().mattermost_bot_userid);
             } else if (!this.skipMatrixUser(member.userId)) {
                 myLogger.info(`again member of roomMembers: ${JSON.stringify(member)}`);
-                const mmUser = await User.findOne({
+                let mmUser = await User.findOne({
                     where: { matrix_userid: member.userId },
                 });
                 // Create Mattermost user on the fly if user doesn't exist
                 if (!mmUser) {
                     myLogger.info(`User not found in Mattermost, creating puppet for ${member.userId}`);
-                    const newUser = await this.mattermostUserStore.getOrCreate(member.userId, true);
-                    mmUser = newUser;
+                    mmUser = await this.mattermostUserStore.getOrCreate(member.userId, true);
                 }
                 myLogger.info(`and member's mmUser: ${JSON.stringify(mmUser)}`);
                 if (mmUser) {
