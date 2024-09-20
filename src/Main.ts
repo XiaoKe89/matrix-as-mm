@@ -898,7 +898,11 @@ export default class Main extends EventEmitter {
     public skipMatrixUser(userid: string): boolean {
         const botMatrixUser = this.botClient.getUserId();
         const ignoredMatrixUsers = config().ignored_matrix_users ?? [];
-        return userid === botMatrixUser || ignoredMatrixUsers.includes(userid);
+        // Extract local part of the Matrix user ID
+        const localPart = userid.split(':')[0].slice(1); // Removes '@' and takes local part
+        // Exclude bridge bot, all other bots and ignored users list
+        return userid === botMatrixUser || ignoredMatrixUsers.includes(userid) || localPart.endsWith("bot");
+        // return userid === botMatrixUser || ignoredMatrixUsers.includes(userid);
     }
 
     public async calculateRoomDisplayName(roomId: string): Promise<string> {

@@ -33,13 +33,6 @@ export default class MatrixUserStore {
         const mutex: MutexInterface = withTimeout(new Mutex(), mutexTimeout);
         const release = await mutex.acquire();
         try {
-            // Extracts the local part (e.g., "somebot") from Matrix user ID
-            const localPart = matrix_userid.split(':')[0].slice(1);
-            // Avoid puppetting bot users
-            if (localPart.endsWith("bot")) {
-                this.myLogger.info(`Skipping bot user: ${matrix_userid}`);
-                return; // Skip bot users
-            }
             this.myLogger.debug(`Attempting to fetch user from in-memory map: ${matrix_userid}`);
             let user = this.get(matrix_userid);
             if (user !== undefined) {
@@ -144,7 +137,7 @@ export default class MatrixUserStore {
             this.myLogger.debug(`Releasing mutex for user: ${matrix_userid}`);
             release();
         }
-    }    
+    }
 
     public async updateUser(user: User): Promise<void> {
         let displayname = localpart(user.matrix_userid);
