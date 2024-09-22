@@ -21,8 +21,6 @@ export async function getMatrixUsers(
     */
     const allMatrixUsers: string[] = [];
     const resp = await main.botClient.getJoinedMembers(roomid);
-    logger.debug('Joined members for: ', roomid);
-    logger.debug('Joined members response: ', JSON.stringify(resp));
     const members = Object.keys(resp.joined);
     for (const member of members) {
         allMatrixUsers.push(member);
@@ -30,16 +28,8 @@ export async function getMatrixUsers(
 
     for (const matrixUser of allMatrixUsers) {
         if (main.isRemoteUser(matrixUser)) {
-            logger.debug(
-                'This is remote user %s',
-                matrixUser,
-            );
             remoteMatrixUsers.add(matrixUser);
         } else {
-            logger.debug(
-                'This is real user %s',
-                matrixUser,
-            );
             realMatrixUsers.add(matrixUser);
         }
     }
