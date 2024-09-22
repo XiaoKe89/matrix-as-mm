@@ -38,9 +38,6 @@ export default class MattermostUserStore {
         userid: string,
         sync: boolean = false,
     ): Promise<User> {
-        this.myLogger.info(
-            `Original userid format: ${userid}`,
-        );
         const mutexTimeout = inDebugger() ? 60000 : 3000;
         const mutex: MutexInterface = withTimeout(new Mutex(), mutexTimeout);
         const release = await mutex.acquire();
