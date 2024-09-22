@@ -618,7 +618,7 @@ export default class Main extends EventEmitter {
     
         // Handle Mattermost-initiated channels
         for (const channel of this.channelsByMattermost.values()) {
-            this.myLogger.info(`Handle Mattermost-initiated channels debug. Channel ${channel} of channels ${this.channelsByMattermost.values()}`,);
+            this.myLogger.info(`Handle Mattermost-initiated channels debug. Channel ${JSON.stringify(channel)} of channels ${JSON.stringify(this.channelsByMattermost.values())}`,);
             try {
                 const count = await dbMapping.Mapping.count({
                     where: {
@@ -668,7 +668,8 @@ export default class Main extends EventEmitter {
         
         // Handle Matrix-initiated rooms
         for (const channel of this.channelsByMatrix.values()) {
-            this.myLogger.info(`Handle Matrix-initiated rooms debug. Channel ${channel} of channels ${this.channelsByMattermost.values()}`,);
+            this.myLogger.info(`Handle Matrix-initiated rooms debug. Channel ${JSON.stringify(channel)} of channels ${JSON.stringify(this.channelsByMatrix.values())}`,);
+            
             const roomId = channel.matrixRoom;
             const channelId = channel.mattermostChannel;
 
