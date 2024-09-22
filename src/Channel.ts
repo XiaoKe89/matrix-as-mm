@@ -45,8 +45,8 @@ export default class Channel {
             getMatrixUsers(this.main, this.matrixRoom),
             getMattermostUsers(this.main.client, this.mattermostChannel),
         ]);
-        this.myLogger.debug(`syncChannel debug matrixUsers: ${matrixUsers}`);
-        this.myLogger.debug(`syncChannel debug mattermostUsers: ${mattermostUsers}`);
+        this.myLogger.debug(`syncChannel debug matrixUsers: ${JSON.stringify(matrixUsers)}`);
+        this.myLogger.debug(`syncChannel debug mattermostUsers: ${JSON.stringify(mattermostUsers)}`);
 
         for (const matrix_userid of matrixUsers.real.values()) {
             if (!this.main.skipMatrixUser(matrix_userid)) {
