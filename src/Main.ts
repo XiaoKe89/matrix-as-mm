@@ -479,7 +479,7 @@ export default class Main extends EventEmitter {
     public async init(): Promise<void> {
         log.time.info('Bridge initialized');
         const packInfo = getPackageInfo();
-
+    
         this.myLogger.info(
             '%s(%s) started with %s',
             packInfo.name,
@@ -487,7 +487,7 @@ export default class Main extends EventEmitter {
             process.argv,
         );
         this.ws = this.client.websocket();
-
+    
         await this.setupDataSource();
         try {
             await registerAppService(
@@ -503,6 +503,7 @@ export default class Main extends EventEmitter {
             );
             await this.killBridge(5);
         }
+    
         const adminPassword = config().matrix_admin.password;
         if (adminPassword) {
             try {
@@ -522,6 +523,7 @@ export default class Main extends EventEmitter {
                 this.killBridge(5);
             }
         }
+    
         if (config().homeserver.server_type === 'synapse') {
             this.synapseClient = await SynapseAdminClient.createClient(
                 this.adminClient,
@@ -531,13 +533,13 @@ export default class Main extends EventEmitter {
                 this.adminClient.getUserId(),
             );
         }
-
+    
         try {
             await this.updateBotProfile();
         } catch (e) {
             this.myLogger.warn(`Error when updating bot profile\n${e.stack}`);
         }
-
+    
         const clientOK = await this.checkMattermostClient();
         if (!clientOK) {
             this.myLogger.error('Mattermost bot client is not valid');
@@ -548,17 +550,18 @@ export default class Main extends EventEmitter {
                 this.client.userid,
             );
         }
+    
         const teamId = config().mattermost_team_id;
-        this.matrixIntegrationTeam=await getMatrixIntegrationTeam(this.client, undefined, teamId)
-
-        this.myLogger.info(`Matrix Integration team id=${this.matrixIntegrationTeam.id}, name=${this.matrixIntegrationTeam.name}`)
-
+        this.matrixIntegrationTeam = await getMatrixIntegrationTeam(this.client, undefined, teamId);
+    
+        this.myLogger.info(`Matrix Integration team id=${this.matrixIntegrationTeam.id}, name=${this.matrixIntegrationTeam.name}`);
+    
         this.ws.on('error', e => {
             this.myLogger.error(
                 `Error when initializing websocket connection.\n${e.stack}`,
             );
         });
-
+    
         this.ws.on('close', async e => {
             this.myLogger.error(
                 'Mattermost websocket closed. Shutting down bridge. Code=%d',
@@ -566,7 +569,7 @@ export default class Main extends EventEmitter {
             );
             await this.killBridge(1);
         });
-
+    
         this.mattermostQueue = new EventQueue({
             emitter: this.ws,
             event: 'message',
@@ -583,6 +586,7 @@ export default class Main extends EventEmitter {
             },
             parent: this,
         });
+    
         this.matrixQueue = new EventQueue({
             emitter: this.appService,
             event: 'event',
@@ -591,15 +595,16 @@ export default class Main extends EventEmitter {
             filter: async e => this.isRemoteUser(e.sender),
             parent: this,
         });
-
+    
         const appservice = this.appService.listen(
             config().appservice.port,
             config().appservice.bind || config().appservice.hostname,
         );
+    
         await this.doInitialMapping();
-
+    
         const rooms = await this.botClient.getJoinedRooms();
-
+    
         const onChannelError = async (e: Error, channel: Channel) => {
             this.myLogger.error(
                 `Error when syncing ${channel.matrixRoom} with ${channel.mattermostChannel}\n error=${e}`,
@@ -610,10 +615,8 @@ export default class Main extends EventEmitter {
             this.channelsByMattermost.delete(channel.mattermostChannel);
             this.channelsByMatrix.delete(channel.matrixRoom);
         };
-
-        // joinMattermostChannel on actual users queries the status of the
-        // corresponding matrix room. Thus, we must make sure our bot has
-        // already joined.
+    
+        // Handle Mattermost-initiated channels
         for (const channel of this.channelsByMattermost.values()) {
             try {
                 const count = await dbMapping.Mapping.count({
@@ -639,7 +642,7 @@ export default class Main extends EventEmitter {
                 await onChannelError(e, channel);
             }
         }
-
+    
         for (const channel of this.channelsByMattermost.values()) {
             try {
                 const count = await dbMapping.Mapping.count({
@@ -661,6 +664,43 @@ export default class Main extends EventEmitter {
                 await onChannelError(e, channel);
             }
         }
+        
+        // Handle Matrix-initiated rooms
+        for (const channel of this.channelsByMatrix.values()) {
+            const roomId = channel.matrixRoom;
+            const channelId = channel.mattermostChannel;
+
+            try {
+                // Check if there's already a mapping in the database
+                const count = await dbMapping.Mapping.count({
+                    where: {
+                        matrix_room_id: roomId,
+                    },
+                });
+
+                if (count === 0) {
+                    const foundRoom = rooms.joined_rooms.find(room => room === roomId);
+                    if (!foundRoom) {
+                        await this.botClient.joinRoom(roomId);
+                    }
+
+                    // Do the mapping and synchronize users
+                    this.doOneMapping(channelId, roomId);
+
+                    await joinMattermostChannel(
+                        channel,
+                        User.create({
+                            mattermost_userid: this.client.userid,
+                        }),
+                    );
+
+                    // Sync the channel to ensure users are properly tracked
+                    await channel.syncChannel();
+                }
+            } catch (e) {
+                await onChannelError(e, channel);
+            }
+        }
 
         this.myLogger.info(
             'Number of channels bridged successfully=%d. Number of matrix puppet users=%d. Number of mattermost puppet users=%d',
@@ -668,16 +708,16 @@ export default class Main extends EventEmitter {
             this.matrixUserStore.byMatrixUserId.size,
             this.mattermostUserStore.countUsers(),
         );
-
+    
         await appservice;
         await this.ws.open();
-
+    
         log.timeEnd.info('Bridge initialized');
-
+    
         void notifySystemd();
         this.initialized = true;
         this.emit('initialize');
-    }
+    }    
 
     private async setupDataSource(sync: boolean = false): Promise<void> {
         const db: any = Object.assign({}, config().database);
