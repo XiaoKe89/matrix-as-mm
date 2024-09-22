@@ -615,7 +615,6 @@ export default class Main extends EventEmitter {
         // corresponding matrix room. Thus, we must make sure our bot has
         // already joined.
         for (const channel of this.channelsByMattermost.values()) {
-            this.myLogger.info(`Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`);
             try {
                 const count = await dbMapping.Mapping.count({
                     where: {
@@ -642,12 +641,14 @@ export default class Main extends EventEmitter {
         }
 
         for (const channel of this.channelsByMattermost.values()) {
+            this.myLogger.info(`Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`);
             try {
                 const count = await dbMapping.Mapping.count({
                     where: {
                         mattermost_channel_id: channel.mattermostChannel,
                     },
                 });
+                this.myLogger.info(`Handling channel. count: ${count}`);
                 if (count === 0) {
                     await channel.syncChannel();
                     const team = await channel.getTeam();
