@@ -675,11 +675,11 @@ export default class Main extends EventEmitter {
                     channel.matrixRoom,
                 );
                 this.myLogger.debug(
-                    `Handling channel. matrixRoomMembers: ${matrixRoomMembers}`,
+                    `Handling channel. Before buggy loop`,
                 );
                 for (const matrixUserId of Object.keys(matrixRoomMembers.joined)) {
                     this.myLogger.debug(
-                        `Handling channel. matrixUserId: ${matrixUserId}`,
+                        `Handling channel. Inside buggy loop`,
                     );
                     if (!this.skipMatrixUser(matrixUserId)) {
                         // Calling getOrCreate directly to track users
