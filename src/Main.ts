@@ -642,14 +642,12 @@ export default class Main extends EventEmitter {
 
         // Original code ignores users form manual-mapped Matrix-initiated channels
         for (const channel of this.channelsByMattermost.values()) {
-            this.myLogger.info(`Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`);
             try {
                 const count = await dbMapping.Mapping.count({
                     where: {
                         mattermost_channel_id: channel.mattermostChannel,
                     },
                 });
-                this.myLogger.info(`Handling channel. count: ${count}`);
                 if (count === 0) {
                     await channel.syncChannel();
                     const team = await channel.getTeam();
@@ -667,17 +665,13 @@ export default class Main extends EventEmitter {
 
         // So I have to add separate logic for Matrix-initiated channels
         for (const channel of this.channelsByMatrix.values()) {
-            this.myLogger.info(
-                `Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`,
-            );
             try {
                 const count = await dbMapping.Mapping.count({
                     where: {
                         matrix_room_id: channel.matrixRoom,
                     },
                 });
-                this.myLogger.info(`Handling channel. count: ${count}`);
-                // affect only manual-mapped matrix rooms
+                // affect only manual-mapped (existing DB records) matrix rooms
                 if (count > 0) {
                     // Call syncChannel or directly handle user tracking
                     await channel.syncChannel(); // This will ensure users are added to the tracked list
@@ -949,11 +943,11 @@ export default class Main extends EventEmitter {
                 return roomAliasEvent.content.alias;
             }
     
-            // Filter out room members (only "join" or "invite")
+            // Filter out room members (only "join" or "invite") and exclude bots
             const members = roomStateResponse.filter((event: any) => 
                 event.type === "m.room.member" &&
                 ["join", "invite"].includes(event.content?.membership) &&
-                event.state_key !== this.botClient.getUserId()
+                !this.skipMatrixUser(event.state_key) // Use skipMatrixUser to filter out bot users
             );
     
             // Handle different cases based on number of members
@@ -962,11 +956,6 @@ export default class Main extends EventEmitter {
                 const roomName = members[0].content?.displayname || members[0].state_key;
                 this.myLogger.info(`Calculated room name based on single member: ${roomName}`);
                 return roomName;
-            // } else if (members.length === 2) {
-            //     members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
-            //     const roomName = `${members[0].content?.displayname || members[0].state_key} and ${members[1].content?.displayname || members[1].state_key}`;
-            //     this.myLogger.info(`Calculated room name based on two members: ${roomName}`);
-            //     return roomName;
             } else if (members.length === 2) {
                 // Fetch the room power levels to identify the admin
                 const powerLevelsEvent = roomStateResponse.find((event: any) => event.type === "m.room.power_levels");
@@ -989,5 +978,5 @@ export default class Main extends EventEmitter {
             this.myLogger.error(`Error fetching room state for room ID ${roomId}: ${error.message}`);
             return "Unnamed Room";
         }
-    }
+    }    
 }

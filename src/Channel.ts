@@ -47,7 +47,6 @@ export default class Channel {
         ]);
 
         for (const matrix_userid of matrixUsers.real.values()) {
-            this.myLogger.debug(`syncChannel debug matrix_userid: ${JSON.stringify(matrix_userid)}`);
             if (!this.main.skipMatrixUser(matrix_userid)) {
                 const user = await this.main.matrixUserStore.getOrCreate(
                     matrix_userid,
@@ -59,7 +58,6 @@ export default class Channel {
         }
 
         for (const userid of mattermostUsers.values()) {
-            this.myLogger.debug(`syncChannel debug mattermost userid: ${JSON.stringify(userid)}`);
             if (!this.main.skipMattermostUser(userid)) {
                 if (!(await this.main.isMattermostUser(userid))) {
                     await leaveMattermostChannel(
