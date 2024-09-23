@@ -640,7 +640,7 @@ export default class Main extends EventEmitter {
             }
         }
 
-        // Original code ignores users form mapped Matrix-initiated channels
+        // Original code ignores users form manual-mapped Matrix-initiated channels
         for (const channel of this.channelsByMattermost.values()) {
             this.myLogger.info(`Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`);
             try {
@@ -665,7 +665,7 @@ export default class Main extends EventEmitter {
             }
         }
 
-        // So I have to add separete logic for Matrix-initiated channels
+        // So I have to add separete logic for manual-mapped Matrix-initiated channels
         for (const channel of this.channelsByMatrix.values()) {
             try {
                 this.myLogger.info(
@@ -674,7 +674,13 @@ export default class Main extends EventEmitter {
                 const matrixRoomMembers = await this.botClient.getRoomMembers(
                     channel.matrixRoom,
                 );
+                this.myLogger.debug(
+                    `Handling channel. matrixRoomMembers: ${matrixRoomMembers}`,
+                );
                 for (const matrixUserId of Object.keys(matrixRoomMembers.joined)) {
+                    this.myLogger.debug(
+                        `Handling channel. matrixUserId: ${matrixUserId}`,
+                    );
                     if (!this.skipMatrixUser(matrixUserId)) {
                         // Calling getOrCreate directly to track users
                         await this.matrixUserStore.getOrCreate(matrixUserId, true);
@@ -683,16 +689,6 @@ export default class Main extends EventEmitter {
                         );
                     }
                 }
-                // // Call syncChannel or directly handle user tracking
-                // await channel.syncChannel(); // This will ensure users are added to the tracked list
-
-                // const team = await channel.getTeam();
-                // const channels = this.channelsByTeam.get(team);
-                // if (channels === undefined) {
-                //     this.channelsByTeam.set(team, [channel]);
-                // } else {
-                //     channels.push(channel);
-                // }
             } catch (e) {
                 this.myLogger.error(
                     `Error when processing Matrix-initiated room ${channel.matrixRoom}: ${e.message}`,
