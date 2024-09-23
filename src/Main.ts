@@ -672,13 +672,13 @@ export default class Main extends EventEmitter {
                 // Call syncChannel or directly handle user tracking
                 await channel.syncChannel(); // This will ensure users are added to the tracked list
 
-                const team = await channel.getTeam();
-                const channels = this.channelsByTeam.get(team);
-                if (channels === undefined) {
-                    this.channelsByTeam.set(team, [channel]);
-                } else {
-                    channels.push(channel);
-                }
+                // const team = await channel.getTeam();
+                // const channels = this.channelsByTeam.get(team);
+                // if (channels === undefined) {
+                //     this.channelsByTeam.set(team, [channel]);
+                // } else {
+                //     channels.push(channel);
+                // }
             } catch (e) {
                 this.myLogger.error(`Error syncing Matrix-initiated room: ${e.message}`);
             }
