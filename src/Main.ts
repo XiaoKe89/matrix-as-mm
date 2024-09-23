@@ -667,10 +667,24 @@ export default class Main extends EventEmitter {
 
         // So I have to add separete logic for Matrix-initiated channels
         for (const channel of this.channelsByMatrix.values()) {
-            this.myLogger.info(`Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`);
             try {
-                // Call syncChannel or directly handle user tracking
-                await channel.syncChannel(); // This will ensure users are added to the tracked list
+                this.myLogger.info(
+                    `Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`,
+                );
+                const matrixRoomMembers = await this.botClient.getRoomMembers(
+                    channel.matrixRoom,
+                );
+                for (const matrixUserId of Object.keys(matrixRoomMembers.joined)) {
+                    if (!this.skipMatrixUser(matrixUserId)) {
+                        // Calling getOrCreate directly to track users
+                        await this.matrixUserStore.getOrCreate(matrixUserId, true);
+                        this.myLogger.info(
+                            `Tracking Matrix user ${matrixUserId} for room ${channel.matrixRoom}`,
+                        );
+                    }
+                }
+                // // Call syncChannel or directly handle user tracking
+                // await channel.syncChannel(); // This will ensure users are added to the tracked list
 
                 // const team = await channel.getTeam();
                 // const channels = this.channelsByTeam.get(team);
@@ -680,7 +694,9 @@ export default class Main extends EventEmitter {
                 //     channels.push(channel);
                 // }
             } catch (e) {
-                this.myLogger.error(`Error syncing Matrix-initiated room: ${e.message}`);
+                this.myLogger.error(
+                    `Error when processing Matrix-initiated room ${channel.matrixRoom}: ${e.message}`,
+                );
             }
         }
 
