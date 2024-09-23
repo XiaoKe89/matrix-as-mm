@@ -671,33 +671,35 @@ export default class Main extends EventEmitter {
                 this.myLogger.info(
                     `Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`,
                 );
-        
+
                 // Fetch room members from Matrix room
                 const matrixRoomMembers = await this.botClient.getRoomMembers(
                     channel.matrixRoom,
                 );
-        
+
                 // Debug: Log the raw response from Matrix to see what's inside
                 this.myLogger.debug(
                     `Raw matrixRoomMembers response: ${JSON.stringify(matrixRoomMembers)}`,
                 );
-        
-                // Debug: Log the joined members if they exist
-                if (matrixRoomMembers?.joined) {
+
+                // Process the events in the 'chunk' array
+                const joinedMembers = matrixRoomMembers.chunk
+                    .filter((event: any) => event.content?.membership === "join")
+                    .map((event: any) => event.state_key);
+
+                // Debug: Log the filtered joined members
+                if (joinedMembers.length > 0) {
                     this.myLogger.debug(
-                        `Joined members in the room: ${JSON.stringify(Object.keys(matrixRoomMembers.joined))}`,
+                        `Joined members in the room: ${JSON.stringify(joinedMembers)}`,
                     );
                 } else {
                     this.myLogger.warn(
                         `No joined members found in Matrix room ${channel.matrixRoom}`,
                     );
                 }
-        
+
                 // Proceed with tracking users if they exist
-                this.myLogger.debug(
-                    `Handling channel. Before loop to process members.`,
-                );
-                for (const matrixUserId of Object.keys(matrixRoomMembers.joined || {})) {
+                for (const matrixUserId of joinedMembers) {
                     this.myLogger.debug(
                         `Processing Matrix user ${matrixUserId} in room ${channel.matrixRoom}`,
                     );
@@ -718,7 +720,7 @@ export default class Main extends EventEmitter {
                     `Error when processing Matrix-initiated room ${channel.matrixRoom}: ${e.message}`,
                 );
             }
-        }        
+        }
 
         this.myLogger.info(
             'Number of channels bridged successfully=%d. Number of matrix puppet users=%d. Number of mattermost puppet users=%d',
