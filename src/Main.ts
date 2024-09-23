@@ -665,60 +665,25 @@ export default class Main extends EventEmitter {
             }
         }
 
-        // So I have to add separete logic for manual-mapped Matrix-initiated channels
+        // So I have to add separate logic for Matrix-initiated channels
         for (const channel of this.channelsByMatrix.values()) {
+            this.myLogger.info(
+                `Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`,
+            );
             try {
-                this.myLogger.info(
-                    `Handling channel. Matrix Room ID: ${channel.matrixRoom}, Mattermost Channel ID: ${channel.mattermostChannel}`,
-                );
-
-                // Fetch room members from Matrix room
-                const matrixRoomMembers = await this.botClient.getRoomMembers(
-                    channel.matrixRoom,
-                );
-
-                // Debug: Log the raw response from Matrix to see what's inside
-                this.myLogger.debug(
-                    `Raw matrixRoomMembers response: ${JSON.stringify(matrixRoomMembers)}`,
-                );
-
-                // Process the events in the 'chunk' array
-                const joinedMembers = matrixRoomMembers.chunk
-                    .filter((event: any) => event.content?.membership === "join")
-                    .map((event: any) => event.state_key);
-
-                // Debug: Log the filtered joined members
-                if (joinedMembers.length > 0) {
-                    this.myLogger.debug(
-                        `Joined members in the room: ${JSON.stringify(joinedMembers)}`,
-                    );
-                } else {
-                    this.myLogger.warn(
-                        `No joined members found in Matrix room ${channel.matrixRoom}`,
-                    );
-                }
-
-                // Proceed with tracking users if they exist
-                for (const matrixUserId of joinedMembers) {
-                    this.myLogger.debug(
-                        `Processing Matrix user ${matrixUserId} in room ${channel.matrixRoom}`,
-                    );
-                    if (!this.skipMatrixUser(matrixUserId)) {
-                        // Calling getOrCreate directly to track users
-                        await this.matrixUserStore.getOrCreate(matrixUserId, true);
-                        this.myLogger.info(
-                            `Tracking Matrix user ${matrixUserId} for room ${channel.matrixRoom}`,
-                        );
-                    } else {
-                        this.myLogger.info(
-                            `Skipping Matrix user ${matrixUserId} as per configuration.`,
-                        );
-                    }
+                const count = await dbMapping.Mapping.count({
+                    where: {
+                        matrix_room_id: channel.matrixRoom,
+                    },
+                });
+                this.myLogger.info(`Handling channel. count: ${count}`);
+                // affect only manual-mapped matrix rooms
+                if (count > 0) {
+                    // Call syncChannel or directly handle user tracking
+                    await channel.syncChannel(); // This will ensure users are added to the tracked list
                 }
             } catch (e) {
-                this.myLogger.error(
-                    `Error when processing Matrix-initiated room ${channel.matrixRoom}: ${e.message}`,
-                );
+                this.myLogger.error(`Error syncing Matrix-initiated room: ${e.message}`);
             }
         }
 
