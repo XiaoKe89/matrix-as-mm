@@ -92,7 +92,7 @@ export default class MatrixUserStore {
                 }
             }
 
-            // Fallback to localpart if display name is not available
+            // Fallback to localpart if display name is not available (promised but omitted in the original code)
             if (!displayname) {
                 displayname = localpart_;
                 this.myLogger.debug(`No display name available. Using localpart as fallback: ${localpart_}`);
