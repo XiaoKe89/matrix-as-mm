@@ -130,16 +130,19 @@ export function constructMatrixReply(
             event_id: original.event_id,
         },
     };
-    const content = original.type;
+
+    // Strip nested <mx-reply> blocks from original content if present
+    const originalBody = original.content.formatted_body
+        ? stripNestedReply(original.content.formatted_body)
+        : original.content.body;
+
     const block = `<mx-reply><blockquote><a href="https://matrix.to/#/${
         original.room_id
     }/${original.event_id}?via=${
         config().homeserver.server_name
     }">In reply to</a> <a href="https://matrix.to/#/${original.sender}">${
         original.sender
-    }</a><br>${
-        original.content.formatted_body ?? original.content.body
-    }</blockquote></mx-reply>`;
+    }</a><br>${originalBody}</blockquote></mx-reply>`;
 
     message.formatted_body = block + (message.formatted_body ?? message.body);
     message.format = 'org.matrix.custom.html';
@@ -147,4 +150,9 @@ export function constructMatrixReply(
         0,
         30,
     )}\n\n${message.body}`;
+}
+
+// Utility function to strip nested replies
+function stripNestedReply(formattedBody: string): string {
+    return formattedBody.replace(/<mx-reply>.*<\/mx-reply>/s, '');
 }

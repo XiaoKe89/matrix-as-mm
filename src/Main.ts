@@ -42,7 +42,7 @@ import log, { getLogger } from './Logging';
 import { EventEmitter } from 'events';
 import {
     MattermostMainHandlers,
-    MattermostUnbridgedHandlers
+    MattermostUnbridgedHandlers,
 } from './mattermost/MattermostHandler';
 import {getMatrixIntegrationTeam} from './mattermost/Utils'
 import * as fs from 'fs';
@@ -641,7 +641,7 @@ export default class Main extends EventEmitter {
             }
         }
 
-        // Original code ignores users form manual-mapped Matrix-initiated channels
+        // Original code ignores users from manual-mapped Matrix-initiated channels
         for (const channel of this.channelsByMattermost.values()) {
             try {
                 const count = await dbMapping.Mapping.count({

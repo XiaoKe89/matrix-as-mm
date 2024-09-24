@@ -555,7 +555,7 @@ export const MattermostHandlers = {
                     await joinUserToMatrixRoom(
                         client,
                         this.matrixRoom,
-                        this.main.bridgeClient, // this.main.adminClient – seems to be wrong
+                        this.main.bridgeClient, // this.main.adminClient – seems not working
                     );
                 }
             }

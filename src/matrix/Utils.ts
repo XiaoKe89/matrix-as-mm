@@ -7,7 +7,6 @@ import { config } from '../Config';
 export async function getMatrixUsers(
     main: Main,
     roomid: string,
-    logger: log4js.Logger = log4js.getLogger('defaultLogger'),
 ): Promise<{
     real: Set<string>;
     remote: Set<string>;
