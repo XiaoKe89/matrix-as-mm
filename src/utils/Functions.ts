@@ -6,6 +6,7 @@ import { EventEmitter } from 'events';
 import { load } from 'js-yaml';
 import { readFileSync } from 'fs';
 import { DataSource } from 'typeorm';
+import { transliterate } from 'transliteration';
 
 export function remove<T>(a: T[], x: T): void {
     const index = a.indexOf(x, 0);
@@ -56,7 +57,7 @@ export function localpart(s: string): string {
 // Username must begin with a letter, and contain between 3 to 22 lowercase
 // characters made up of numbers, letters, and the symbols ‘.’, ‘-‘, and ‘_’.
 export function sanitizeMattermostUsername(s: string): string {
-    s = s.toLowerCase();
+    s = transliterate(s.toLowerCase()); // addd transliterate in case non-latin display names
     s = s.replace(/[^a-z0-9_\-\.]/g, '_');
     s = s.replace(/^_*/, '');
     if (!s[0].match(/[a-z]/)) {
