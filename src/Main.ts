@@ -943,11 +943,12 @@ export default class Main extends EventEmitter {
                 return roomAliasEvent.content.alias;
             }
     
-            // Filter out room members (only "join" or "invite") and exclude bots
+            // Filter out room members (only "join" or "invite") and exclude both bot and bridgeClient users
             const members = roomStateResponse.filter((event: any) => 
                 event.type === "m.room.member" &&
                 ["join", "invite"].includes(event.content?.membership) &&
-                !this.skipMatrixUser(event.state_key) // Use skipMatrixUser to filter out bot users
+                !this.skipMatrixUser(event.state_key) && 
+                event.state_key !== this.bridgeClient.getUserId() // Exclude bridgeClient user
             );
     
             // Handle different cases based on number of members
@@ -962,10 +963,13 @@ export default class Main extends EventEmitter {
             //     this.myLogger.info(`Calculated room name based on two members: ${roomName}`);
             //     return roomName;
             } else if (members.length === 2) {
-                // Sort by origin_server_ts to find the very first user that joined the room
-                members.sort((a: any, b: any) => a.origin_server_ts - b.origin_server_ts);
+                // Fetch the room power levels to identify the admin
+                const powerLevelsEvent = roomStateResponse.find((event: any) => event.type === "m.room.power_levels");
+                const powerLevels = powerLevelsEvent?.content?.users || {};
+                // Sort members by power level to get the admin
+                members.sort((a: any, b: any) => (powerLevels[b.state_key] || 0) - (powerLevels[a.state_key] || 0));
                 const roomName = members[0].content?.displayname || members[0].state_key;
-                this.myLogger.info(`Calculated room name based on first user: ${roomName}`);
+                this.myLogger.info(`Calculated room name based on admin: ${roomName}`);
                 return roomName;
             } else if (members.length >= 3) {
                 members.sort((a: any, b: any) => a.state_key.localeCompare(b.state_key));
