@@ -39,12 +39,12 @@ export default class MatrixUserStore {
                 this.myLogger.debug(`User found in in-memory map: ${matrix_userid}`);
                 return user;
             }
-    
+
             this.myLogger.debug(`User not found in memory. Querying database for user: ${matrix_userid}`);
             user = await User.findOne({
                 where: { matrix_userid: matrix_userid },
             });
-    
+
             if (user) {
                 this.myLogger.debug(`User found in database: ${JSON.stringify(user)}`);
                 this.myLogger.debug(`Checking if Mattermost username matches for user: ${matrix_userid}`);
@@ -71,14 +71,15 @@ export default class MatrixUserStore {
             } else {
                 this.myLogger.debug(`User not found in database: ${matrix_userid}`);
             }
-    
+
             const client = this.main.client;
             const localpart_ = localpart(matrix_userid);
             const template = config().mattermost_username_template;
-    
+            
             this.myLogger.debug(`Generating username and display name for new user: ${matrix_userid}`);
             let displayname = '';
-    
+            
+            // Try fetching display name from Matrix
             if (template.includes('[DISPLAY]')) {
                 try {
                     const resp = await this.main.botClient.getProfileInfo(matrix_userid);
@@ -90,13 +91,23 @@ export default class MatrixUserStore {
                     this.myLogger.debug(`No display name found for ${matrix_userid}`);
                 }
             }
-    
-            const username = template
+
+            // Fallback to localpart if display name is not available
+            if (!displayname) {
+                displayname = localpart_;
+                this.myLogger.debug(`No display name available. Using localpart as fallback: ${localpart_}`);
+            }
+
+            // Generate username using the template
+            let username = template
                 .replace('[DISPLAY]', displayname)
                 .replace('[LOCALPART]', localpart_);
-    
-            this.myLogger.debug(`Generated username: ${username} for user: ${matrix_userid}`);
-    
+
+            // Sanitize the generated username
+            username = sanitizeMattermostUsername(username);
+            
+            this.myLogger.debug(`Generated and sanitized username: ${username} for user: ${matrix_userid}`);            
+
             let userInfo = undefined;
             try {
                 const info = await client.post('/users/usernames', [username]);
@@ -107,9 +118,9 @@ export default class MatrixUserStore {
             } catch (e) {
                 this.myLogger.error(`Error fetching Mattermost user information for ${matrix_userid}: ${e.message}`);
             }
-    
+
             const email = await this.getUserEmail(matrix_userid);
-    
+
             user = await User.createMatrixUser(
                 client,
                 matrix_userid,
@@ -121,7 +132,7 @@ export default class MatrixUserStore {
             this.myLogger.debug(
                 `Created Mattermost puppet user ID: ${user.mattermost_userid}, name: ${user.mattermost_username} for Matrix user: ${matrix_userid}`
             );
-    
+
             this.byMatrixUserId.set(matrix_userid, user);
             this.byMattermostUserId.set(user.mattermost_userid, user);
             return user;
