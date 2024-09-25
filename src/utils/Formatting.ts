@@ -131,7 +131,7 @@ export function constructMatrixReply(
         },
     };
 
-    // Strip nested <mx-reply> blocks from original content if present
+    // Nested (<mx-reply>) blocks are not supported in WhatsApp / Signal messengers relays. Remove them from original content if present.
     const originalBody = original.content.formatted_body
         ? stripNestedReply(original.content.formatted_body)
         : original.content.body;
