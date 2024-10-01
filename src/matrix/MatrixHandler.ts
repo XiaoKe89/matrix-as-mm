@@ -541,17 +541,17 @@ export const MatrixUnbridgedHandlers = {
         let forcedMapping = false;
 
         // Log the details of `event.sender` and the state of `matrixUserStore`
-        this.myLogger.info(`Event sender: ${JSON.stringify(event.sender)}`);
-        this.myLogger.info(`Matrix User Store state: ${JSON.stringify(this.matrixUserStore)}`);
-        this.myLogger.info(`Checking if sender ${event.sender} exists in matrixUserStore...`);
+        myLogger.info(`Event sender: ${JSON.stringify(event.sender)}`);
+        myLogger.info(`Matrix User Store state: ${JSON.stringify(this.matrixUserStore)}`);
+        myLogger.info(`Checking if sender ${event.sender} exists in matrixUserStore...`);
 
         const user = await this.matrixUserStore.get(event.sender);
 
         // Log the result of the `get` operation and any properties of the user object
         if (user === undefined) {
-            this.myLogger.warn(`User not found for sender: ${event.sender}`);
+            myLogger.warn(`User not found for sender: ${event.sender}`);
         } else {
-            this.myLogger.info(`User found: ${JSON.stringify(user)}`);
+            myLogger.info(`User found: ${JSON.stringify(user)}`);
         }
 
 
