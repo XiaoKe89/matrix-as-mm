@@ -189,14 +189,17 @@ export async function getMatrixIntegrationTeam(
     userId?: string,
     teamId?: string,
 ): Promise<any> {
+    myLogger.debug(`Before myTeams`);
     const myTeams: any[] = await client.get(`/users/${client.userid}/teams`);
     // let team = myTeams.find(team => {
     //     return team.name === MATRIX_INTEGRATION_TEAM.toLocaleLowerCase();
     // });
     
     // what the hell are we have to use hardcoded name 'MatrixRooms'?
+    myLogger.debug(`Before team`);
     let team = myTeams.find(team => team.id === teamId);
 
+    myLogger.debug(`Before isMember`);
     let isMember: boolean = false;
     if (!team) {
         team = await client.post(
@@ -217,6 +220,7 @@ export async function getMatrixIntegrationTeam(
         );
         isMember = info.status === 200;
     }
+    myLogger.debug(`Before !isMember && userId`);
     if (!isMember && userId) {
         await client.post(`/teams/${team.id}/members`, {
             user_id: userId,
