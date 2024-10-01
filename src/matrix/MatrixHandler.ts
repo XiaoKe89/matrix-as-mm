@@ -544,7 +544,7 @@ export const MatrixUnbridgedHandlers = {
         myLogger.info(`Event sender: ${JSON.stringify(event.sender)}`);
         
         const util = require('util'); // If util is not already imported
-        this.myLogger.info(`Matrix User Store state: ${util.inspect(this.matrixUserStore, { showHidden: false, depth: 3, colors: true })}`);
+        myLogger.info(`Matrix User Store state: ${util.inspect(this.matrixUserStore, { showHidden: false, depth: 3, colors: true })}`);
 
         myLogger.info(`Checking if sender ${event.sender} exists in matrixUserStore...`);
 
