@@ -628,12 +628,17 @@ export const MatrixUnbridgedHandlers = {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
             // const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
             const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId, original channelName may include restricted symbols
+            myLogger.debug("After channelName")
             const teamId = config().mattermost_team_id;
+            myLogger.debug("After teamId")
             const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid, teamId)
+            myLogger.debug("After team")
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
+            myLogger.debug("After teamMembers")
 
             // Check if the channel already exists in Mattermost
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
+            myLogger.debug("After check")
             let existingChannel = false;
             let channel: any = null;
 
