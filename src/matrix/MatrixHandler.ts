@@ -542,7 +542,10 @@ export const MatrixUnbridgedHandlers = {
 
         // Log the details of `event.sender` and the state of `matrixUserStore`
         myLogger.info(`Event sender: ${JSON.stringify(event.sender)}`);
-        myLogger.info(`Matrix User Store state: ${JSON.stringify(this.matrixUserStore)}`);
+        
+        const util = require('util'); // If util is not already imported
+        this.myLogger.info(`Matrix User Store state: ${util.inspect(this.matrixUserStore, { showHidden: false, depth: 3, colors: true })}`);
+
         myLogger.info(`Checking if sender ${event.sender} exists in matrixUserStore...`);
 
         const user = await this.matrixUserStore.get(event.sender);
