@@ -343,7 +343,13 @@ export default class Main extends EventEmitter {
             room_alias_name: channel.name,
             invite: [this.botClient.getUserId()],
         };
+        this.myLogger.debug(
+            'Before createPublicMatrixRoom - createRoom',
+        );
         const info = await this.adminClient.createRoom(matrixRoom);
+        this.myLogger.debug(
+            'After createPublicMatrixRoom - createRoom',
+        );
 
         const map: Mapping = {
             mattermost: channel.id,
