@@ -74,10 +74,6 @@ export class MatrixClient {
     private accessToken: string;
     private sessionCreateMethod: SessionCreatedWith = SessionCreatedWith.None;
     private sessionIsValid: boolean = false;
-    this.myLogger.debug(
-        'Set default validity=%s',
-        sessionIsValid,
-    );
     private logoutDone: boolean = false;
     readonly apiTrace;
 
@@ -119,6 +115,7 @@ export class MatrixClient {
             this.baseUrl,
             this.accessToken,
         );
+        this.myLogger.debug(`Initial sessionIsValid state: ${this.sessionIsValid}`);
     }
     public getClient(): axios.AxiosInstance {
         return this.client;
@@ -343,10 +340,7 @@ export class MatrixClient {
         }
         this.sessionCreateMethod = SessionCreatedWith.RegisterAppService;
         this.sessionIsValid = true;
-        this.myLogger.debug(
-            'registerService validity=%s',
-            sessionIsValid,
-        );
+        this.myLogger.info(`sessionIsValid changed to: ${this.sessionIsValid} at registerService`);    
         return retValue;
     }
 
@@ -372,10 +366,7 @@ export class MatrixClient {
         }
         this.sessionCreateMethod = SessionCreatedWith.LoginAppService;
         this.sessionIsValid = true;
-        this.myLogger.debug(
-            'loginAppService validity=%s',
-            sessionIsValid,
-        );
+        this.myLogger.info(`sessionIsValid changed to: ${this.sessionIsValid} at loginAppService`);
         return responseData;
     }
 
@@ -399,20 +390,14 @@ export class MatrixClient {
         });
         this.sessionCreateMethod = SessionCreatedWith.LoginPassword;
         this.sessionIsValid = true;
-        this.myLogger.debug(
-            'loginWithPassword validity=%s',
-            sessionIsValid,
-        );
+        this.myLogger.info(`sessionIsValid changed to: ${this.sessionIsValid} at loginWithPassword`);
         this.setAccessToken(responseData.access_token);
         return responseData;
     }
 
     public async logout() {
         this.sessionIsValid = false;
-        this.myLogger.debug(
-            'logout validity=%s',
-            sessionIsValid,
-        );
+        this.myLogger.info(`sessionIsValid changed to: ${this.sessionIsValid} at logout`);
         this.logoutDone = true;
         return await this.doRequest({
             method: 'POST',
@@ -559,6 +544,7 @@ export class MatrixClient {
         } catch (e: any) {
             const me = MatrixClient.getMatrixError(e);
             if (!this.sessionIsValid && me) {
+                this.myLogger.warn(`sessionIsValid changed to: ${this.sessionIsValid} due to error response at doRequest`);
                 return me;
             }
             if (me.error) {
