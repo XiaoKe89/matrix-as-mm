@@ -54,7 +54,7 @@ export function localpart(s: string): string {
     return s.slice(1).split(':')[0];
 }
 
-// Username must begin with a letter, and contain between 3 to 22 lowercase
+// Username must begin with a letter, and contain between 3 to 22 lowercase but it actually allows create usernames up to 64 symbols via API
 // characters made up of numbers, letters, and the symbols ‘.’, ‘-‘, and ‘_’.
 export function sanitizeMattermostUsername(s: string): string {
     s = transliterate(s.toLowerCase()); // addd transliterate in case non-latin display names
@@ -68,8 +68,8 @@ export function sanitizeMattermostUsername(s: string): string {
     while (s.length < 3) {
         s += '_';
     }
-    if (s.length > 22) {
-        s = s.slice(0, 22);
+    if (s.length > 64) {
+        s = s.slice(0, 64);
     }
     return s;
 }

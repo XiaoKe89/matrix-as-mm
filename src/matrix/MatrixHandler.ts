@@ -541,22 +541,19 @@ export const MatrixUnbridgedHandlers = {
         let forcedMapping = false;
 
         // Log the details of `event.sender` and the state of `matrixUserStore`
-        myLogger.info(`Event sender: ${JSON.stringify(event.sender)}`);
-        
-        const util = require('util'); // If util is not already imported
-        myLogger.info(`Matrix User Store state: ${util.inspect(this.matrixUserStore, { showHidden: false, depth: 3, colors: true })}`);
-
-        myLogger.info(`Checking if sender ${event.sender} exists in matrixUserStore...`);
+        // myLogger.debug(`Event sender: ${JSON.stringify(event.sender)}`);
+        // const util = require('util'); // If util is not already imported
+        // myLogger.debug(`Matrix User Store state: ${util.inspect(this.matrixUserStore, { showHidden: false, depth: 3, colors: true })}`);
+        // myLogger.debug(`Checking if sender ${event.sender} exists in matrixUserStore...`);
 
         const user = await this.matrixUserStore.get(event.sender);
 
         // Log the result of the `get` operation and any properties of the user object
-        if (user === undefined) {
-            myLogger.warn(`User not found for sender: ${event.sender}`);
-        } else {
-            myLogger.info(`User found: ${JSON.stringify(user)}`);
-        }
-
+        // if (user === undefined) {
+        //     myLogger.warn(`User not found for sender: ${event.sender}`);
+        // } else {
+        //     myLogger.info(`User found: ${JSON.stringify(user)}`);
+        // }
 
         for (const membership of memberships) {
             const response = await client.getRoomMembers(
@@ -644,17 +641,12 @@ export const MatrixUnbridgedHandlers = {
             myLogger.debug("Creating federated private/public Room=%s", roomName)
             // const channelName = roomName.replace(/\s+/g, '_').toLowerCase();
             const channelName = roomId.split('!')[1]?.split(':')[0].toLowerCase() || ''; // sanitizedRoomId, original channelName may include restricted symbols
-            myLogger.debug("After channelName")
             const teamId = config().mattermost_team_id;
-            myLogger.debug("After teamId")
             const team = await getMatrixIntegrationTeam(this.client, user.mattermost_userid, teamId)
-            myLogger.debug("After team")
             const teamMembers: any[] = await this.client.get(`/teams/${team.id}/members`)
-            myLogger.debug("After teamMembers")
 
             // Check if the channel already exists in Mattermost
             const check = await this.client.get(`/teams/${team.id}/channels/name/${channelName}`, undefined, false, false)
-            myLogger.debug("After check")
             let existingChannel = false;
             let channel: any = null;
 
