@@ -86,32 +86,21 @@ async function processBotCommand(
 ): Promise<string | { roomName: any, channelPrivacy: boolean } | undefined> {
     const content = event.content;
     const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
-    if (content.body && content.body.startsWith("!")) {
+    if (content.body && content.body.startsWith("!") && handlerType === "message") {
         const [command, ...args] = content.body.slice(1).split(" ");
         if (command === botCmdPrefix) {
             // Process "hello" command in MatrixMessageHandlers
-            if (handlerType === "message") {
-                if (args[0] === "hello") {
-                    await sendNotice('Info', client, event.room_id, `Hello, world!`)
-                    return;
-                // Add other regular commands here
-                } else {
-                    // Handle unknown commands
-                    await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
-                    return;
-                }
-            }
-            // Process "mmchannel" command in MatrixUnbridgedHandlers
-            if (handlerType === "unbridged" && args[0] === "mmchannel") {
-                const roomName = await this.calculateRoomDisplayName(event.room_id);
-                const channelPrivacy = false
-                return { roomName, channelPrivacy };
-            } else {
-                // Handle unknown commands
-                await sendNotice('Info', client, event.room_id, `Unknown or unavailable command.`)
+            if (args[0] === "hello") {
+                await sendNotice('Info', client, event.room_id, `Hello, world!`);
                 return;
+            // Add other regular commands here
             }
         }
+    } else if (handlerType === "unbridged") {
+        // Map unbridged room with any first message
+        const roomName = await this.calculateRoomDisplayName(event.room_id);
+        const channelPrivacy = false;
+        return { roomName, channelPrivacy };
     }
     return;
 }
