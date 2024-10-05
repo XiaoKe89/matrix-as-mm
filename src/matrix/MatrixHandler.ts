@@ -86,6 +86,7 @@ async function processBotCommand(
 ): Promise<string | { roomName: any, channelPrivacy: boolean } | undefined> {
     const content = event.content;
     const botCmdPrefix = config().bot_cmd_prefix || "botname"; // Use config prefix or fallback to "botname"
+    // Handle commands starting with "!" only if handlerType is "message"
     if (content.body && content.body.startsWith("!") && handlerType === "message") {
         const [command, ...args] = content.body.slice(1).split(" ");
         if (command === botCmdPrefix) {
@@ -695,8 +696,19 @@ export const MatrixUnbridgedHandlers = {
             mapping.mattermost_channel_id = channel.id;
             mapping.info = `Channel display name: ${channel.display_name}`;
             await mapping.save();
-            const message = `Room mapped to Mattermost channel <strong>${channel.display_name} </strong> in team <strong>${team.name}</strong>`
-            await sendNotice('Info', client, roomId, message)
+
+            const message = `Room mapped to Mattermost channel <strong>${channel.display_name} </strong> in team <strong>${team.name}</strong>`;
+            // Log the message
+            myLogger.info(message);
+            // await sendNotice('Info', client, roomId, message)
+            // Send the message to Mattermost 'town-square' channel
+            const townSquareReq = await this.client.get(`/teams/${team.id}/channels/name/town-square`, undefined, false, false)
+            const townSquareChannel = townSquareReq.data;
+            await this.main.client.post('/posts', {
+                channel_id: townSquareChannel.id,
+                message: `New channel created ~${channelName}`,
+            });
+
             await this.redoMatrixEvent(event);
         }
         else {
