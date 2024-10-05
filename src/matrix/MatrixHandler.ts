@@ -704,7 +704,7 @@ export const MatrixUnbridgedHandlers = {
             // Send the message to Mattermost 'town-square' channel
             const townSquareReq = await this.client.get(`/teams/${team.id}/channels/name/town-square`, undefined, false, false)
             const townSquareChannel = townSquareReq.data;
-            await this.main.client.post('/posts', {
+            await user.client.post('/posts', {
                 channel_id: townSquareChannel.id,
                 message: `New channel created ~${channelName}`,
             });
