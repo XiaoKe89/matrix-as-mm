@@ -51,6 +51,8 @@ async function uploadFile(
     const parts = mxc.split('/');
 
     const body = await client.download(parts[2], parts[3]);
+    myLogger.info(`Downloaded body: ${body}`);
+    myLogger.info(`Event: ${JSON.stringify(event, null, 2)}`);
 
     if (!body) {
         throw new Error(`Downloaded empty file: ${mxc}`);
@@ -63,7 +65,11 @@ async function uploadFile(
     });
     form.append('channel_id', this.mattermostChannel);
 
+    myLogger.info(`Form Data before upload: ${form}`);
+
     const fileInfos = await user.client.post('/files', form);
+    myLogger.info(`FileInfos response: ${JSON.stringify(fileInfos, null, 2)}`);
+
     const fileid = fileInfos.file_infos[0].id;
     const post = await user.client.post('/posts', {
         channel_id: this.mattermostChannel,
@@ -71,6 +77,8 @@ async function uploadFile(
         root_id: metadata.root_id,
         file_ids: [fileid],
     });
+    myLogger.info(`Post response: ${JSON.stringify(post, null, 2)}`);
+
     await Post.create({
         postid: post.id,
         eventid: event.event_id,
