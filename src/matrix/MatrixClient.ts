@@ -472,10 +472,14 @@ export class MatrixClient {
     public async download(
         serverName: string,
         mediaId: string,
-        fileName: string,
+        // fileName: string,
     ) {
+        // const content = await this.doRequest({
+        //     url: `/_matrix/media/v3/download/${serverName}/${mediaId}/${fileName}`,
+        //     responseType: 'arraybuffer',
+        // });
         const content = await this.doRequest({
-            url: `/_matrix/media/v3/download/${serverName}/${mediaId}/${fileName}`,
+            url: `/_matrix/client/v1/media/download/${serverName}/${mediaId}`,
             responseType: 'arraybuffer',
         });
         return content;
