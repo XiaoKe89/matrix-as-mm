@@ -50,7 +50,7 @@ async function uploadFile(
     const mxc: string = event.content.url;
     const parts = mxc.split('/');
 
-    const body = await client.download(parts[2], parts[3], event.content.body);
+    const body = await client.download(parts[2], parts[3]);
 
     if (!body) {
         throw new Error(`Downloaded empty file: ${mxc}`);
