@@ -50,8 +50,8 @@ async function uploadFile(
     const mxc: string = event.content.url;
     const parts = mxc.split('/');
 
-    const body = await client.download(parts[2], parts[3]);
-    myLogger.info(`Downloaded body: ${body}`);
+    const body = await client.download(parts[2], parts[3], event.content.filename);
+    // myLogger.info(`Downloaded body: ${body}`);
     myLogger.info(`Event: ${JSON.stringify(event, null, 2)}`);
 
     if (!body) {
@@ -60,7 +60,7 @@ async function uploadFile(
 
     const form = new FormData();
     form.append('files', body, {
-        filename: event.content.body,
+        filename: event.content.filename,
         contentType: event.content.info?.mimetype,
     });
     form.append('channel_id', this.mattermostChannel);
