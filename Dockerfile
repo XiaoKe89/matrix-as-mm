@@ -4,13 +4,11 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
-# Copy only the files needed to avoid too large of a context
+# Copy only requirements.txt first and install dependencies
 COPY requirements.txt /app/
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the code
+# Now copy the rest of the application code
 COPY . /app/
 
 # Set environment variables
