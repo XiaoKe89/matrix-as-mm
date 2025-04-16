@@ -1,14 +1,24 @@
-FROM golang:1.16-alpine AS build
+# Use official Python image
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy only the files needed to avoid too large of a context
+COPY requirements.txt /app/
 
 # Install dependencies
-RUN apk add --no-cache git
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Clone the repository
-RUN git clone https://github.com/kty0mka/matrix-as-mm.git /go/src/matrix-as-mm
+# Copy the rest of the code
+COPY . /app/
 
-# Build the project
-WORKDIR /go/src/matrix-as-mm
-RUN go build -o /bin/matrix-as-mm
+# Set environment variables
+ENV MATTERMOST_URL=https://mattermost.example.com
+ENV MATRIX_HOMESERVER_URL=https://matrix.example.com
 
-# Run the app
-CMD ["/bin/matrix-as-mm"]
+# Expose the application port
+EXPOSE 8080
+
+# Command to run the app
+CMD ["python", "app.py"]
