@@ -1,20 +1,23 @@
-# Stage 1: Build the application
+# Stage 1: Use a Go image that already has the repository downloaded (if possible)
 FROM golang:1.18-alpine as builder
 
 # Install git and dependencies
 RUN apk add --no-cache git
 
-# Set working directory and clone the repository
-WORKDIR /go/src/github.com/your-username/matrix-as-mm
-RUN git clone https://github.com/XiaoKe89/matrix-as-mm.git .
+# Set the working directory
+WORKDIR /go/src/github.com/XiaoKe89/matrix-as-mm
 
-# Get Go dependencies
+# Copy the files directly into the Docker image (Assuming you’ve downloaded the repo separately)
+# You can use `COPY . .` if you have a local folder with the code on your host
+COPY ./matrix-as-mm /go/src/github.com/XiaoKe89/matrix-as-mm
+
+# Install dependencies
 RUN go mod download
 
 # Build the binary
 RUN go build -o /go/bin/matrix-as-mm .
 
-# Stage 2: Copy the built binary to a fresh minimal image
+# Stage 2: Use a lightweight image to run the built application
 FROM alpine:3.16
 
 # Install the necessary runtime dependencies
@@ -24,7 +27,7 @@ RUN apk add --no-cache \
     libmagic \
     && update-ca-certificates
 
-# Copy the binary from the builder stage
+# Copy the binary from the build stage
 COPY --from=builder /go/bin/matrix-as-mm /usr/local/bin/
 
 # Set up the working directory
