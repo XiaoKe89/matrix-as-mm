@@ -1,22 +1,37 @@
-# Use official Python image
-FROM python:3.9-slim
+# Start with the official Golang image
+FROM golang:1.18-alpine as builder
 
-# Set working directory
-WORKDIR /app
+# Set working directory in the container
+WORKDIR /go/src/github.com/mattermost/matrix-as-mm
 
-# Copy only requirements.txt first and install dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Clone the repository
+RUN apk add --no-cache git
+RUN git clone https://github.com/XiaoKe89/matrix-as-mm.git .
 
-# Now copy the rest of the application code
-COPY . /app/
+# Get dependencies
+RUN go mod download
 
-# Set environment variables
-ENV MATTERMOST_URL=https://mattermost.example.com
-ENV MATRIX_HOMESERVER_URL=https://matrix.example.com
+# Build the binary
+RUN go build -o /go/bin/matrix-as-mm .
 
-# Expose the application port
-EXPOSE 8080
+# Final image: Start with a minimal Alpine base image
+FROM alpine:3.16
 
-# Command to run the app
-CMD ["python", "app.py"]
+# Install required dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    bash \
+    libmagic \
+    && update-ca-certificates
+
+# Copy the built binary from the builder stage
+COPY --from=builder /go/bin/matrix-as-mm /usr/local/bin/
+
+# Set up the working directory for the bot
+WORKDIR /root
+
+# Expose the port the bot will run on
+EXPOSE 8008
+
+# Command to run the bot
+CMD ["matrix-as-mm"]
